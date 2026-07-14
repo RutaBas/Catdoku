@@ -110,6 +110,7 @@ if (typeof module !== "undefined" && module.exports) {
     cellIndex,
     rowColOf,
     validateRegions,
+    isConnected,
     createMarkState,
     cycleMark,
     isDiagonallyAdjacent,

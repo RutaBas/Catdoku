@@ -286,18 +286,19 @@ function solve(N, regionOf) {
   };
 }
 
-// Independent brute-force uniqueness verifier — never used to solve puzzles
-// for players, only to cross-check the deduction solver during generation.
-function countSolutions(N, regionOf, cap = 2) {
+// Independent brute-force search — never used to solve puzzles for players,
+// only to cross-check the deduction solver during generation. Returns up to
+// `cap` distinct solutions, each a row-ordered array of {row, col}.
+function findSolutions(N, regionOf, cap = 2) {
   const colUsed = new Array(N).fill(false);
   const regionUsed = new Array(N).fill(false);
   const catCol = new Array(N).fill(-1);
-  let count = 0;
+  const solutions = [];
 
   function backtrack(row) {
-    if (count >= cap) return;
+    if (solutions.length >= cap) return;
     if (row === N) {
-      count++;
+      solutions.push(catCol.map((col, r) => ({ row: r, col })));
       return;
     }
     for (let col = 0; col < N; col++) {
@@ -316,12 +317,16 @@ function countSolutions(N, regionOf, cap = 2) {
       regionUsed[regionId] = false;
       catCol[row] = -1;
 
-      if (count >= cap) return;
+      if (solutions.length >= cap) return;
     }
   }
 
   backtrack(0);
-  return count;
+  return solutions;
+}
+
+function countSolutions(N, regionOf, cap = 2) {
+  return findSolutions(N, regionOf, cap).length;
 }
 
 if (typeof module !== "undefined" && module.exports) {
@@ -329,6 +334,7 @@ if (typeof module !== "undefined" && module.exports) {
     TIER,
     solve,
     countSolutions,
+    findSolutions,
     _internal: {
       createSolverState,
       cloneState,
