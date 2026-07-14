@@ -170,7 +170,7 @@
   function renderCellContent(cellIdx, mark) {
     const div = cellEls[cellIdx];
     if (mark === CatdokuBoard.MARK.CAT) {
-      div.innerHTML = '<span class="mark-cat">\u{1F431}</span>';
+      div.innerHTML = '<img class="mark-cat" src="icons/cat-mark.png" alt="">';
       div.setAttribute("aria-label", "Cat");
     } else if (mark === CatdokuBoard.MARK.X) {
       div.innerHTML = '<span class="mark-x">✕</span>';

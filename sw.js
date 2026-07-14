@@ -1,7 +1,25 @@
 // Cache-first app shell. Bump CACHE_NAME on every deploy — this is the update strategy.
-// Real asset list (icons etc.) finalized in step 7; placeholder for now.
-const CACHE_NAME = "catdoku-v1";
-const ASSETS = [".", "index.html", "css/styles.css", "manifest.json"];
+const CACHE_NAME = "catdoku-v3";
+const ASSETS = [
+  ".",
+  "index.html",
+  "css/styles.css",
+  "manifest.json",
+  "js/rng.js",
+  "js/board.js",
+  "js/solver.js",
+  "js/generator.js",
+  "js/puzzle-pool.js",
+  "js/pool.js",
+  "js/game.js",
+  "js/storage.js",
+  "js/ui.js",
+  "js/main.js",
+  "icons/icon-180.png",
+  "icons/icon-192.png",
+  "icons/icon-512.png",
+  "icons/cat-mark.png",
+];
 
 self.addEventListener("install", (e) => {
   e.waitUntil(caches.open(CACHE_NAME).then((c) => c.addAll(ASSETS)));

@@ -239,7 +239,10 @@ h1 {
 }
 
 .cell .mark-cat {
-  font-size: 1.3em;
+  width: 78%;
+  height: 78%;
+  object-fit: contain;
+  pointer-events: none;
 }
 
 .cell .mark-x {
