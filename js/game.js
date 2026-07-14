@@ -98,6 +98,42 @@ function requestHint(state) {
   return hint;
 }
 
+// Serializes an in-progress (unwon) game for localStorage. Stores elapsed
+// time rather than the raw startTime, so a resumed game reads as "paused"
+// across the gap instead of the clock having run the whole time app was closed.
+function toSaveData(state, now = Date.now()) {
+  return {
+    version: 1,
+    N: state.N,
+    regionOf: state.regionOf,
+    solution: state.solution,
+    maxTierUsed: state.maxTierUsed,
+    difficultyKey: state.difficultyKey,
+    marks: state.marks,
+    history: state.history,
+    moveCount: state.moveCount,
+    hintsUsed: state.hintsUsed,
+    elapsedMsAtSave: getElapsedMs(state, now),
+  };
+}
+
+function fromSaveData(saved, now = Date.now()) {
+  return {
+    N: saved.N,
+    regionOf: saved.regionOf,
+    solution: saved.solution,
+    maxTierUsed: saved.maxTierUsed,
+    difficultyKey: saved.difficultyKey,
+    marks: saved.marks,
+    history: saved.history,
+    moveCount: saved.moveCount,
+    hintsUsed: saved.hintsUsed || 0,
+    startTime: now - saved.elapsedMsAtSave,
+    endTime: null,
+    won: false,
+  };
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     createGameState,
@@ -109,6 +145,8 @@ if (typeof module !== "undefined" && module.exports) {
     getElapsedMs,
     requestHint,
     catCellsOf,
+    toSaveData,
+    fromSaveData,
   };
 } else if (typeof window !== "undefined") {
   window.CatdokuGame = {
@@ -121,6 +159,8 @@ if (typeof module !== "undefined" && module.exports) {
     getElapsedMs,
     requestHint,
     catCellsOf,
+    toSaveData,
+    fromSaveData,
   };
 }
 

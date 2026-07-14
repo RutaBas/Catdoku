@@ -7,6 +7,7 @@
   const CatdokuPool = window.CatdokuPool;
   const CatdokuPuzzlePool = window.CatdokuPuzzlePool;
   const CatdokuGenerator = window.CatdokuGenerator;
+  const CatdokuStorage = window.CatdokuStorage;
 
   const el = {
     startScreen: document.getElementById("start-screen"),
@@ -22,7 +23,9 @@
     board: document.getElementById("board"),
     winBanner: document.getElementById("win-banner"),
     winMessage: document.getElementById("win-message"),
+    winStats: document.getElementById("win-stats"),
     winNewGameBtn: document.getElementById("win-new-game-btn"),
+    confettiLayer: document.getElementById("confetti-layer"),
     undoBtn: document.getElementById("undo-btn"),
     clearBtn: document.getElementById("clear-btn"),
     restartBtn: document.getElementById("restart-btn"),
@@ -34,7 +37,13 @@
   let cellEls = [];
   let timerHandle = null;
   let hintedCellIdx = null;
+  let pendingContinueSave = null;
   const recentlyUsedByTier = {};
+
+  function refreshContinueAvailability() {
+    pendingContinueSave = CatdokuStorage.loadGame();
+    el.continueRow.hidden = !pendingContinueSave;
+  }
 
   function showScreen(name) {
     el.startScreen.hidden = name !== "start";
@@ -70,7 +79,23 @@
   function startNewGame(difficultyKey) {
     const puzzle = pickPuzzle(difficultyKey);
     gameState = CatdokuGame.createGameState(puzzle, difficultyKey);
+    CatdokuStorage.recordGameStarted(difficultyKey);
     const level = CatdokuGenerator.DIFFICULTY_LEVELS.find((l) => l.key === difficultyKey);
+    el.difficultyLabel.textContent = level.name;
+    el.winBanner.hidden = true;
+    hintedCellIdx = null;
+    setHintMessage("");
+    showScreen("game");
+    buildBoardDom(gameState);
+    startTimerLoop();
+    persistCurrentGame();
+    pendingContinueSave = null;
+    el.continueRow.hidden = true;
+  }
+
+  function resumeSavedGame(saved) {
+    gameState = CatdokuGame.fromSaveData(saved);
+    const level = CatdokuGenerator.DIFFICULTY_LEVELS.find((l) => l.key === gameState.difficultyKey);
     el.difficultyLabel.textContent = level.name;
     el.winBanner.hidden = true;
     hintedCellIdx = null;
@@ -88,6 +113,12 @@
     setHintMessage("");
     buildBoardDom(gameState);
     startTimerLoop();
+    persistCurrentGame();
+  }
+
+  function persistCurrentGame() {
+    if (!gameState || gameState.won) return;
+    CatdokuStorage.saveGame(CatdokuGame.toSaveData(gameState));
   }
 
   function borderStyleFor(N, regionOf, cellIdx) {
@@ -160,7 +191,11 @@
     CatdokuGame.tapCell(gameState, cellIdx);
     renderCellContent(cellIdx, gameState.marks[cellIdx]);
     updateStats(gameState);
-    if (gameState.won) handleWin();
+    if (gameState.won) {
+      handleWin();
+    } else {
+      persistCurrentGame();
+    }
   }
 
   function clearHintHighlight() {
@@ -207,9 +242,39 @@
     stopTimerLoop();
     clearHintHighlight();
     setHintMessage("");
-    const seconds = Math.round(CatdokuGame.getElapsedMs(gameState) / 1000);
-    el.winMessage.textContent = `Solved in ${formatTime(seconds * 1000)} and ${gameState.moveCount} moves!`;
+    CatdokuStorage.clearSave();
+
+    const elapsedMs = CatdokuGame.getElapsedMs(gameState);
+    const stats = CatdokuStorage.recordWin(gameState.difficultyKey, elapsedMs);
+    const entry = stats.byDifficulty[gameState.difficultyKey];
+
+    el.winMessage.textContent = `Solved in ${formatTime(elapsedMs)} and ${gameState.moveCount} moves!`;
+    const isNewBest = entry.bestTimeMs === elapsedMs;
+    el.winStats.textContent = isNewBest
+      ? `New best time! (${entry.won} win${entry.won === 1 ? "" : "s"} at this difficulty)`
+      : `Best: ${formatTime(entry.bestTimeMs)} · ${entry.won} win${entry.won === 1 ? "" : "s"} at this difficulty`;
+
     el.winBanner.hidden = false;
+    spawnConfetti();
+  }
+
+  const CONFETTI_EMOJI = ["🐱", "🐾", "✨"];
+
+  function spawnConfetti() {
+    el.confettiLayer.innerHTML = "";
+    const pieceCount = 14;
+    for (let i = 0; i < pieceCount; i++) {
+      const span = document.createElement("span");
+      span.className = "confetti-piece";
+      span.textContent = CONFETTI_EMOJI[i % CONFETTI_EMOJI.length];
+      span.style.left = `${Math.random() * 100}%`;
+      span.style.animationDelay = `${(Math.random() * 0.4).toFixed(2)}s`;
+      span.style.setProperty("--drift", `${Math.round((Math.random() - 0.5) * 60)}px`);
+      el.confettiLayer.appendChild(span);
+    }
+    setTimeout(() => {
+      el.confettiLayer.innerHTML = "";
+    }, 1800);
   }
 
   function formatTime(ms) {
@@ -239,19 +304,25 @@
   function wireControls() {
     el.backBtn.addEventListener("click", () => {
       stopTimerLoop();
+      refreshContinueAvailability();
       showScreen("start");
+    });
+    el.continueBtn.addEventListener("click", () => {
+      if (pendingContinueSave) resumeSavedGame(pendingContinueSave);
     });
     el.undoBtn.addEventListener("click", () => {
       if (!gameState) return;
       CatdokuGame.undoLastMove(gameState);
       renderAllCellContent(gameState);
       updateStats(gameState);
+      persistCurrentGame();
     });
     el.clearBtn.addEventListener("click", () => {
       if (!gameState) return;
       CatdokuGame.clearAllMarks(gameState);
       renderAllCellContent(gameState);
       updateStats(gameState);
+      persistCurrentGame();
     });
     el.restartBtn.addEventListener("click", restartCurrentGame);
     el.hintBtn.addEventListener("click", onHintTap);
@@ -266,6 +337,7 @@
   function init() {
     renderDifficultyScreen();
     wireControls();
+    refreshContinueAvailability();
     showScreen("start");
   }
 
