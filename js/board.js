@@ -1,6 +1,7 @@
 // Grid/region data model and pure validators for Catdoku.
 // No DOM access here — keep this file runnable under plain `node`.
 
+(function () {
 const MARK = Object.freeze({ EMPTY: 0, X: 1, CAT: 2 });
 
 function cellIndex(N, row, col) {
@@ -116,4 +117,18 @@ if (typeof module !== "undefined" && module.exports) {
     isDiagonallyAdjacent,
     isValidSolution,
   };
+} else if (typeof window !== "undefined") {
+  window.CatdokuBoard = {
+    MARK,
+    cellIndex,
+    rowColOf,
+    validateRegions,
+    isConnected,
+    createMarkState,
+    cycleMark,
+    isDiagonallyAdjacent,
+    isValidSolution,
+  };
 }
+
+})();

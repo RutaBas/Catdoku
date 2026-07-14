@@ -1,5 +1,6 @@
 // Seeded PRNG (mulberry32) so puzzle generation is deterministic and reproducible.
 
+(function () {
 function mulberry32(seed) {
   let a = seed >>> 0;
   return function () {
@@ -27,4 +28,8 @@ function randomInt(rng, maxExclusive) {
 
 if (typeof module !== "undefined" && module.exports) {
   module.exports = { mulberry32, shuffle, randomInt };
+} else if (typeof window !== "undefined") {
+  window.CatdokuRng = { mulberry32, shuffle, randomInt };
 }
+
+})();

@@ -1,7 +1,10 @@
 // Tiered deduction solver for Catdoku, mapped to the Territory/rank difficulty
 // ladder. Pure logic — no DOM access — runnable under plain `node`.
 
-const { cellIndex, rowColOf } = require("./board.js");
+(function () {
+const CatdokuBoard =
+  typeof module !== "undefined" && module.exports ? require("./board.js") : window.CatdokuBoard;
+const { cellIndex, rowColOf } = CatdokuBoard;
 
 const TIER = Object.freeze({
   LAP_CAT: 1,
@@ -350,4 +353,8 @@ if (typeof module !== "undefined" && module.exports) {
       runToFixpoint,
     },
   };
+} else if (typeof window !== "undefined") {
+  window.CatdokuSolver = { TIER, solve, countSolutions, findSolutions };
 }
+
+})();

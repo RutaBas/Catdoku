@@ -3,9 +3,13 @@
 // uniqueness and exact difficulty-tier match before accepting it. Pure logic
 // — no DOM access — runnable under plain `node`.
 
-const { cellIndex, rowColOf, validateRegions, isConnected } = require("./board.js");
-const { TIER, solve, countSolutions, findSolutions } = require("./solver.js");
-const { shuffle, randomInt } = require("./rng.js");
+(function () {
+const isNode = typeof module !== "undefined" && module.exports;
+const { cellIndex, rowColOf, validateRegions, isConnected } = isNode
+  ? require("./board.js")
+  : window.CatdokuBoard;
+const { TIER, solve, countSolutions, findSolutions } = isNode ? require("./solver.js") : window.CatdokuSolver;
+const { shuffle, randomInt, mulberry32 } = isNode ? require("./rng.js") : window.CatdokuRng;
 
 const DIFFICULTY_LEVELS = [
   { key: "lapCat", name: "Lap Cat", tier: TIER.LAP_CAT, N: 5 },
@@ -180,7 +184,6 @@ function repairForUniqueness(N, regionOf, seedSolution, maxRepairs = 300) {
 // isn't reachable by deduction alone, or doesn't require exactly the target
 // technique tier (never graded by region shape/count).
 function generatePuzzle({ N, targetTier, seed, maxAttempts = 3000, rng: providedRng }) {
-  const { mulberry32 } = require("./rng.js");
   const rng = providedRng || mulberry32(seed);
 
   for (let attempt = 0; attempt < maxAttempts; attempt++) {
@@ -225,4 +228,8 @@ if (typeof module !== "undefined" && module.exports) {
     generatePuzzle,
     generatePuzzleForDifficulty,
   };
+} else if (typeof window !== "undefined") {
+  window.CatdokuGenerator = { DIFFICULTY_LEVELS, generatePuzzle, generatePuzzleForDifficulty };
 }
+
+})();
