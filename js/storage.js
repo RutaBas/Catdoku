@@ -1,10 +1,12 @@
-// localStorage persistence: auto-save (catdoku.save.v1) and per-difficulty
-// stats (catdoku.stats.v1). Pure I/O — the store is injectable so this file
-// stays testable under plain `node` (no real localStorage there).
+// localStorage persistence: auto-save (catdoku.save.v1), per-difficulty
+// stats (catdoku.stats.v1), and settings (catdoku.settings.v1). Pure I/O —
+// the store is injectable so this file stays testable under plain `node`
+// (no real localStorage there).
 
 (function () {
   const SAVE_KEY = "catdoku.save.v1";
   const STATS_KEY = "catdoku.stats.v1";
+  const SETTINGS_KEY = "catdoku.settings.v1";
 
   function defaultStore() {
     return typeof localStorage !== "undefined" ? localStorage : null;
@@ -87,6 +89,27 @@
     };
   }
 
+  function defaultSettings() {
+    return { version: 1, darkMode: true, sound: true, haptics: true };
+  }
+
+  function loadSettings(store = defaultStore()) {
+    if (!store) return defaultSettings();
+    try {
+      const raw = store.getItem(SETTINGS_KEY);
+      if (!raw) return defaultSettings();
+      const parsed = JSON.parse(raw);
+      return parsed && typeof parsed === "object" ? { ...defaultSettings(), ...parsed } : defaultSettings();
+    } catch (e) {
+      return defaultSettings();
+    }
+  }
+
+  function saveSettings(settings, store = defaultStore()) {
+    if (!store) return;
+    store.setItem(SETTINGS_KEY, JSON.stringify(settings));
+  }
+
   const api = {
     saveGame,
     loadGame,
@@ -96,6 +119,8 @@
     recordGameStarted,
     recordWin,
     getStatsForDifficulty,
+    loadSettings,
+    saveSettings,
   };
 
   if (typeof module !== "undefined" && module.exports) {

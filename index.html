@@ -14,7 +14,11 @@
 <body>
 <div id="app">
   <section id="start-screen">
-    <h1>Catdoku</h1>
+    <div id="start-header">
+      <span class="header-spacer" aria-hidden="true"></span>
+      <h1>Catdoku</h1>
+      <button id="settings-btn" class="icon-btn" type="button" aria-label="Settings">⚙️</button>
+    </div>
     <p class="tagline">One cat per row, column, and territory.</p>
     <div id="continue-row" hidden>
       <button id="continue-btn" class="btn btn-primary" type="button">Continue</button>
@@ -42,7 +46,10 @@
     <div id="win-banner" hidden>
       <p id="win-message"></p>
       <p id="win-stats"></p>
-      <button id="win-new-game-btn" class="btn btn-primary" type="button">New Game</button>
+      <div class="win-actions">
+        <button id="win-share-btn" class="btn" type="button">Share</button>
+        <button id="win-new-game-btn" class="btn btn-primary" type="button">New Game</button>
+      </div>
     </div>
 
     <footer id="controls">
@@ -52,6 +59,27 @@
       <button id="hint-btn" class="btn" type="button">Hint</button>
     </footer>
   </section>
+
+  <div id="settings-overlay" class="overlay" hidden>
+    <div id="settings-panel" class="panel" role="dialog" aria-label="Settings" aria-modal="true">
+      <h2>Settings</h2>
+      <label class="setting-row">
+        <span>Dark mode</span>
+        <input id="setting-dark-mode" type="checkbox">
+      </label>
+      <label class="setting-row">
+        <span>Sound</span>
+        <input id="setting-sound" type="checkbox">
+      </label>
+      <label class="setting-row">
+        <span>Haptics</span>
+        <input id="setting-haptics" type="checkbox">
+      </label>
+      <button id="settings-close-btn" class="btn btn-primary" type="button">Done</button>
+    </div>
+  </div>
+
+  <div id="share-toast" hidden>Copied to clipboard!</div>
 </div>
 
 <script src="js/rng.js"></script>

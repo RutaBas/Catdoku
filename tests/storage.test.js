@@ -6,6 +6,8 @@ const {
   recordGameStarted,
   recordWin,
   getStatsForDifficulty,
+  loadSettings,
+  saveSettings,
 } = require("../js/storage.js");
 const { createGameState, tapCell, toSaveData, fromSaveData } = require("../js/game.js");
 const { assertTrue, assertFalse, assertEqual, summary } = require("./assert.js");
@@ -112,6 +114,28 @@ console.log("\nloadStats(): tolerates corrupted JSON instead of throwing");
   store.setItem("catdoku.stats.v1", "not json at all");
   const stats = loadStats(store);
   assertTrue(stats && typeof stats.byDifficulty === "object", "falls back to a valid empty stats structure");
+}
+
+console.log("\nsettings: defaults, round-trip, corrupt-JSON fallback, and partial-object backfill");
+{
+  const store = fakeStore();
+  const defaults = loadSettings(store);
+  assertEqual(defaults.darkMode, true, "dark mode defaults to on, matching the app's default dark theme");
+  assertEqual(defaults.sound, true, "sound defaults to on");
+  assertEqual(defaults.haptics, true, "haptics defaults to on");
+
+  saveSettings({ version: 1, darkMode: false, sound: false, haptics: true }, store);
+  const loaded = loadSettings(store);
+  assertEqual(loaded.darkMode, false, "darkMode round-trips");
+  assertEqual(loaded.sound, false, "sound round-trips");
+
+  store.setItem("catdoku.settings.v1", "{not valid json");
+  assertEqual(loadSettings(store).darkMode, true, "corrupt settings JSON falls back to defaults");
+
+  store.setItem("catdoku.settings.v1", JSON.stringify({ version: 1, sound: false }));
+  const partial = loadSettings(store);
+  assertEqual(partial.sound, false, "a stored partial settings object keeps its own values");
+  assertEqual(partial.haptics, true, "a stored partial settings object backfills missing keys from defaults");
 }
 
 summary();

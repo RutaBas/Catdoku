@@ -86,6 +86,33 @@ function getElapsedMs(state, now = Date.now()) {
   return end - state.startTime;
 }
 
+function formatTime(ms) {
+  const totalSeconds = Math.max(0, Math.floor(ms / 1000));
+  const m = Math.floor(totalSeconds / 60);
+  const s = totalSeconds % 60;
+  return `${m}:${String(s).padStart(2, "0")}`;
+}
+
+// Wordle-style shareable result: each region gets a fixed emoji (cycling
+// through REGION_EMOJI by regionOf % length), cat cells show as paw prints.
+const REGION_EMOJI = ["\u{1F7E5}", "\u{1F7E7}", "\u{1F7E8}", "\u{1F7E9}", "\u{1F7E6}", "\u{1F7EA}", "\u{1F7EB}", "⬛", "⬜", "\u{1F536}"];
+
+function buildShareText(state, difficultyName, now = Date.now()) {
+  const lines = [];
+  for (let row = 0; row < state.N; row++) {
+    let line = "";
+    for (let col = 0; col < state.N; col++) {
+      const cell = cellIndex(state.N, row, col);
+      line += state.marks[cell] === MARK.CAT ? "\u{1F43E}" : REGION_EMOJI[state.regionOf[cell] % REGION_EMOJI.length];
+    }
+    lines.push(line);
+  }
+  const elapsedMs = getElapsedMs(state, now);
+  const header = `Catdoku — ${difficultyName} (${state.N}×${state.N})`;
+  const statLine = `Solved in ${formatTime(elapsedMs)} · ${state.moveCount} move${state.moveCount === 1 ? "" : "s"}`;
+  return [header, statLine, "", ...lines].join("\n");
+}
+
 // Delegates to the solver for the next logical deduction, given the
 // player's current marks. Never mutates marks — only reveals where to look.
 function requestHint(state) {
@@ -134,34 +161,26 @@ function fromSaveData(saved, now = Date.now()) {
   };
 }
 
+const gameApi = {
+  createGameState,
+  restartGameState,
+  tapCell,
+  undoLastMove,
+  clearAllMarks,
+  checkWin,
+  getElapsedMs,
+  formatTime,
+  buildShareText,
+  requestHint,
+  catCellsOf,
+  toSaveData,
+  fromSaveData,
+};
+
 if (typeof module !== "undefined" && module.exports) {
-  module.exports = {
-    createGameState,
-    restartGameState,
-    tapCell,
-    undoLastMove,
-    clearAllMarks,
-    checkWin,
-    getElapsedMs,
-    requestHint,
-    catCellsOf,
-    toSaveData,
-    fromSaveData,
-  };
+  module.exports = gameApi;
 } else if (typeof window !== "undefined") {
-  window.CatdokuGame = {
-    createGameState,
-    restartGameState,
-    tapCell,
-    undoLastMove,
-    clearAllMarks,
-    checkWin,
-    getElapsedMs,
-    requestHint,
-    catCellsOf,
-    toSaveData,
-    fromSaveData,
-  };
+  window.CatdokuGame = gameApi;
 }
 
 })();

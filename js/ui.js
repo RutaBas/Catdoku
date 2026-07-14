@@ -31,6 +31,14 @@
     restartBtn: document.getElementById("restart-btn"),
     hintBtn: document.getElementById("hint-btn"),
     hintMessage: document.getElementById("hint-message"),
+    settingsBtn: document.getElementById("settings-btn"),
+    settingsOverlay: document.getElementById("settings-overlay"),
+    settingsCloseBtn: document.getElementById("settings-close-btn"),
+    settingDarkMode: document.getElementById("setting-dark-mode"),
+    settingSound: document.getElementById("setting-sound"),
+    settingHaptics: document.getElementById("setting-haptics"),
+    winShareBtn: document.getElementById("win-share-btn"),
+    shareToast: document.getElementById("share-toast"),
   };
 
   let gameState = null;
@@ -38,7 +46,84 @@
   let timerHandle = null;
   let hintedCellIdx = null;
   let pendingContinueSave = null;
+  let settings = CatdokuStorage.loadSettings();
+  let audioCtx = null;
   const recentlyUsedByTier = {};
+
+  function applyTheme(darkMode) {
+    document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
+  }
+
+  function applySettingsToUi() {
+    applyTheme(settings.darkMode);
+    el.settingDarkMode.checked = settings.darkMode;
+    el.settingSound.checked = settings.sound;
+    el.settingHaptics.checked = settings.haptics;
+  }
+
+  function updateSetting(key, value) {
+    settings[key] = value;
+    CatdokuStorage.saveSettings(settings);
+    if (key === "darkMode") applyTheme(value);
+  }
+
+  function getAudioCtx() {
+    const Ctx = window.AudioContext || window.webkitAudioContext;
+    if (!Ctx) return null;
+    if (!audioCtx) audioCtx = new Ctx();
+    if (audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  // Short synthesized tones — no audio assets to fetch/cache offline.
+  function playTone(freq, durationMs, delayMs = 0, gain = 0.08) {
+    if (!settings.sound) return;
+    const ctx = getAudioCtx();
+    if (!ctx) return;
+    const osc = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    osc.type = "sine";
+    osc.frequency.value = freq;
+    const startAt = ctx.currentTime + delayMs / 1000;
+    const stopAt = startAt + durationMs / 1000;
+    gainNode.gain.setValueAtTime(gain, startAt);
+    gainNode.gain.exponentialRampToValueAtTime(0.0001, stopAt);
+    osc.connect(gainNode).connect(ctx.destination);
+    osc.start(startAt);
+    osc.stop(stopAt);
+  }
+
+  function playTapSound() {
+    playTone(520, 60);
+  }
+
+  function playWinSound() {
+    playTone(523.25, 120, 0);
+    playTone(659.25, 120, 110);
+    playTone(783.99, 220, 220);
+  }
+
+  function vibrate(pattern) {
+    if (settings.haptics && "vibrate" in navigator) navigator.vibrate(pattern);
+  }
+
+  function showSettings() {
+    el.settingsOverlay.hidden = false;
+  }
+
+  function hideSettings() {
+    el.settingsOverlay.hidden = true;
+  }
+
+  function showShareToast() {
+    el.shareToast.hidden = true;
+    void el.shareToast.offsetWidth; // force reflow so the animation restarts on repeat taps
+    el.shareToast.hidden = false;
+    clearTimeout(showShareToast._t);
+    showShareToast._t = setTimeout(() => {
+      el.shareToast.hidden = true;
+    }, 1800);
+  }
 
   function refreshContinueAvailability() {
     pendingContinueSave = CatdokuStorage.loadGame();
@@ -191,6 +276,8 @@
     CatdokuGame.tapCell(gameState, cellIdx);
     renderCellContent(cellIdx, gameState.marks[cellIdx]);
     updateStats(gameState);
+    playTapSound();
+    vibrate(12);
     if (gameState.won) {
       handleWin();
     } else {
@@ -256,6 +343,8 @@
 
     el.winBanner.hidden = false;
     spawnConfetti();
+    playWinSound();
+    vibrate([40, 30, 40, 30, 80]);
   }
 
   const CONFETTI_EMOJI = ["🐱", "🐾", "✨"];
@@ -277,12 +366,7 @@
     }, 1800);
   }
 
-  function formatTime(ms) {
-    const totalSeconds = Math.max(0, Math.floor(ms / 1000));
-    const m = Math.floor(totalSeconds / 60);
-    const s = totalSeconds % 60;
-    return `${m}:${String(s).padStart(2, "0")}`;
-  }
+  const formatTime = CatdokuGame.formatTime;
 
   function updateStats(state) {
     el.timer.textContent = formatTime(CatdokuGame.getElapsedMs(state));
@@ -329,12 +413,34 @@
     el.winNewGameBtn.addEventListener("click", () => {
       if (gameState) startNewGame(gameState.difficultyKey);
     });
+    el.winShareBtn.addEventListener("click", onShareTap);
     window.addEventListener("resize", () => {
       if (gameState) sizeBoard(gameState.N);
     });
+
+    el.settingsBtn.addEventListener("click", showSettings);
+    el.settingsCloseBtn.addEventListener("click", hideSettings);
+    el.settingsOverlay.addEventListener("click", (e) => {
+      if (e.target === el.settingsOverlay) hideSettings();
+    });
+    el.settingDarkMode.addEventListener("change", () => updateSetting("darkMode", el.settingDarkMode.checked));
+    el.settingSound.addEventListener("change", () => updateSetting("sound", el.settingSound.checked));
+    el.settingHaptics.addEventListener("change", () => updateSetting("haptics", el.settingHaptics.checked));
+  }
+
+  function onShareTap() {
+    if (!gameState) return;
+    const level = CatdokuGenerator.DIFFICULTY_LEVELS.find((l) => l.key === gameState.difficultyKey);
+    const text = CatdokuGame.buildShareText(gameState, level.name);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(showShareToast, showShareToast);
+    } else {
+      showShareToast();
+    }
   }
 
   function init() {
+    applySettingsToUi();
     renderDifficultyScreen();
     wireControls();
     refreshContinueAvailability();

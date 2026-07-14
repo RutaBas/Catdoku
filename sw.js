@@ -1,5 +1,5 @@
 // Cache-first app shell. Bump CACHE_NAME on every deploy — this is the update strategy.
-const CACHE_NAME = "catdoku-v3";
+const CACHE_NAME = "catdoku-v4";
 const ASSETS = [
   ".",
   "index.html",

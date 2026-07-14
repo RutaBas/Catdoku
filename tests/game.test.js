@@ -7,6 +7,8 @@ const {
   clearAllMarks,
   checkWin,
   getElapsedMs,
+  formatTime,
+  buildShareText,
   requestHint,
 } = require("../js/game.js");
 const { assertTrue, assertFalse, assertEqual, summary } = require("./assert.js");
@@ -156,6 +158,36 @@ console.log("\nrequestHint(): returns 'solved' and does not touch hintsUsed once
   const hint = requestHint(state);
   assertEqual(hint.type, "solved", "hint short-circuits once the game is already won");
   assertEqual(state.hintsUsed, 0, "hintsUsed is untouched when the game is already solved");
+}
+
+console.log("\nformatTime(): m:ss, floors to whole seconds, never goes negative");
+{
+  assertEqual(formatTime(0), "0:00", "zero ms");
+  assertEqual(formatTime(59000), "0:59", "under a minute");
+  assertEqual(formatTime(60000), "1:00", "exactly a minute rolls over");
+  assertEqual(formatTime(3661000), "61:01", "no hour rollover, just accumulates minutes");
+  assertEqual(formatTime(1999), "0:01", "floors to whole seconds rather than rounding up");
+  assertEqual(formatTime(-500), "0:00", "never goes negative");
+}
+
+console.log("\nbuildShareText(): one emoji-grid line per row, one paw print per placed cat, header/stats present");
+{
+  const state = createGameState(puzzle, "lapCat", 1000);
+  for (const { row, col } of puzzle.solution) {
+    tapCell(state, row * 4 + col);
+    tapCell(state, row * 4 + col);
+  }
+  assertTrue(state.won, "sanity: game is won");
+
+  const text = buildShareText(state, "Lap Cat", state.endTime);
+  const lines = text.split("\n");
+  assertTrue(lines[0].includes("Lap Cat") && lines[0].includes("4×4"), "header names the difficulty and grid size");
+  assertTrue(lines[1].includes("move"), "second line reports the move count");
+  const gridLines = lines.slice(3);
+  assertEqual(gridLines.length, 4, "one grid line per board row");
+  assertTrue(gridLines.every((line) => [...line].length === 4), "each grid line has one symbol per column");
+  const pawCount = (text.match(/\u{1F43E}/gu) || []).length;
+  assertEqual(pawCount, 4, "one paw print per placed cat, matching N");
 }
 
 summary();

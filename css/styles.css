@@ -52,9 +52,21 @@ body {
 }
 
 h1 {
-  margin: 0.4em 0 0;
+  margin: 0;
   text-align: center;
   font-size: 2rem;
+}
+
+#start-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.4em;
+}
+
+#start-header .header-spacer {
+  width: 44px;
+  height: 44px;
 }
 
 .tagline {
@@ -316,4 +328,113 @@ h1 {
 
 #controls .btn {
   flex: 1;
+}
+
+/* --- Win actions / share --- */
+.win-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.win-actions .btn {
+  flex: 1;
+}
+
+#share-toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(1.5rem + env(safe-area-inset-bottom));
+  transform: translateX(-50%);
+  background: var(--panel);
+  color: var(--text);
+  padding: 0.6em 1.1em;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  z-index: 100;
+  animation: toast-pop 1.8s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes toast-pop {
+  0% { opacity: 0; transform: translate(-50%, 8px); }
+  12% { opacity: 1; transform: translate(-50%, 0); }
+  82% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* --- Settings --- */
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 60;
+}
+
+.panel {
+  background: var(--panel);
+  border-radius: 16px;
+  padding: 1.25rem 1.25rem 1.5rem;
+  width: 320px;
+  max-width: 100%;
+}
+
+.panel h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+
+.setting-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.7rem 0;
+  font-size: 1rem;
+  border-bottom: 1px solid var(--cell-border-soft);
+}
+
+.setting-row:last-of-type {
+  border-bottom: none;
+}
+
+.setting-row input[type="checkbox"] {
+  appearance: none;
+  -webkit-appearance: none;
+  width: 46px;
+  height: 27px;
+  border-radius: 999px;
+  background: var(--cell-border-soft);
+  position: relative;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background 0.15s ease;
+}
+
+.setting-row input[type="checkbox"]::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: #ffffff;
+  transition: transform 0.15s ease;
+}
+
+.setting-row input[type="checkbox"]:checked {
+  background: var(--accent);
+}
+
+.setting-row input[type="checkbox"]:checked::before {
+  transform: translateX(19px);
+}
+
+#settings-panel .btn-primary {
+  width: 100%;
+  margin-top: 1rem;
 }
