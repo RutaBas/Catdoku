@@ -4,6 +4,7 @@
 (function () {
 const isNode = typeof module !== "undefined" && module.exports;
 const CatdokuBoard = isNode ? require("./board.js") : window.CatdokuBoard;
+const CatdokuSolver = isNode ? require("./solver.js") : window.CatdokuSolver;
 const { MARK, cellIndex, rowColOf, createMarkState, cycleMark, isValidSolution } = CatdokuBoard;
 
 // puzzle: { N, regionOf, solution, maxTierUsed }
@@ -20,6 +21,7 @@ function createGameState(puzzle, difficultyKey, now = Date.now()) {
     startTime: now,
     endTime: null,
     won: false,
+    hintsUsed: 0,
   };
 }
 
@@ -84,6 +86,18 @@ function getElapsedMs(state, now = Date.now()) {
   return end - state.startTime;
 }
 
+// Delegates to the solver for the next logical deduction, given the
+// player's current marks. Never mutates marks — only reveals where to look.
+function requestHint(state) {
+  if (state.won) return { type: "solved" };
+
+  const hint = CatdokuSolver.getHint(state.N, state.regionOf, state.marks);
+  if (hint.type === "place" || hint.type === "eliminate") {
+    state.hintsUsed++;
+  }
+  return hint;
+}
+
 if (typeof module !== "undefined" && module.exports) {
   module.exports = {
     createGameState,
@@ -93,6 +107,7 @@ if (typeof module !== "undefined" && module.exports) {
     clearAllMarks,
     checkWin,
     getElapsedMs,
+    requestHint,
     catCellsOf,
   };
 } else if (typeof window !== "undefined") {
@@ -104,6 +119,7 @@ if (typeof module !== "undefined" && module.exports) {
     clearAllMarks,
     checkWin,
     getElapsedMs,
+    requestHint,
     catCellsOf,
   };
 }

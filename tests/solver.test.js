@@ -1,5 +1,5 @@
-const { validateRegions, isValidSolution } = require("../js/board.js");
-const { TIER, solve, countSolutions, _internal } = require("../js/solver.js");
+const { validateRegions, isValidSolution, MARK } = require("../js/board.js");
+const { TIER, solve, countSolutions, getHint, _internal } = require("../js/solver.js");
 const { assertTrue, assertFalse, assertEqual, summary } = require("./assert.js");
 const {
   createSolverState,
@@ -158,6 +158,49 @@ console.log("\ncountSolutions(): caps at the requested limit");
   const regionOf = [0, 0, 0, 0, 1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3];
   const count = countSolutions(4, regionOf, 2);
   assertEqual(count, 2, "a loosely-constrained 4x4 grid has exactly 2 solutions, capped at 2");
+}
+
+console.log("\ngetHint(): reveals one elimination matching the Windowsill Watcher scenario");
+{
+  const regionOf = [0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3];
+  const marks = new Array(16).fill(MARK.EMPTY);
+  marks[4] = MARK.X; // (1,0), region0
+  marks[5] = MARK.X; // (1,1), region0 -> region0 confined to row0
+  const hint = getHint(4, regionOf, marks);
+  assertEqual(hint.type, "eliminate", "region confined to a row -> an elimination hint");
+  assertEqual(hint.cell, 2, "hint points at the specific cell the technique eliminates");
+  assertEqual(hint.tier, TIER.WINDOWSILL_WATCHER, "hint reports the technique tier that found it");
+}
+
+console.log("\ngetHint(): reveals a forced placement when a region has one candidate left");
+{
+  const regionOf = [0, 1, 2, 0, 1, 2, 0, 1, 2]; // 3x3 column-stripe regions
+  const marks = new Array(9).fill(MARK.EMPTY);
+  marks[3] = MARK.X; // (1,0)
+  marks[6] = MARK.X; // (2,0) -> region0 down to one candidate: (0,0)
+  const hint = getHint(3, regionOf, marks);
+  assertEqual(hint.type, "place", "region down to one candidate -> a placement hint");
+  assertEqual(hint.cell, 0, "hint points at cell (0,0)");
+  assertEqual(hint.tier, TIER.LAP_CAT, "single-candidate region is the cheapest tier");
+}
+
+console.log("\ngetHint(): reports a conflict when the player's marks can't lead to any solution");
+{
+  const regionOf = [0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3];
+  const marks = new Array(16).fill(MARK.EMPTY);
+  marks[0] = MARK.CAT; // (0,0) — placing here eliminates every region1 candidate in row0 (cells 2,3)
+  marks[2] = MARK.CAT; // forcing a second cat into row0 as well: immediate contradiction
+  const hint = getHint(4, regionOf, marks);
+  assertEqual(hint.type, "conflict", "two cats already in the same row can never reach a solution");
+}
+
+console.log("\ngetHint(): reports solved once every row already has a cat");
+{
+  const regionOf = [0, 0, 1, 1, 0, 0, 1, 1, 2, 2, 3, 3, 2, 2, 3, 3];
+  const marks = new Array(16).fill(MARK.EMPTY);
+  for (const cell of [1, 7, 8, 14]) marks[cell] = MARK.CAT; // a genuine valid solution for this grid
+  const hint = getHint(4, regionOf, marks);
+  assertEqual(hint.type, "solved", "a fully valid placement reports solved, not a further deduction");
 }
 
 summary();

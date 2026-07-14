@@ -7,6 +7,7 @@ const {
   clearAllMarks,
   checkWin,
   getElapsedMs,
+  requestHint,
 } = require("../js/game.js");
 const { assertTrue, assertFalse, assertEqual, summary } = require("./assert.js");
 
@@ -129,6 +130,32 @@ console.log("\nrestartGameState(): same puzzle, fresh marks/history/timer");
   assertEqual(restarted.moveCount, 0, "restarted move count is zero");
   assertEqual(restarted.startTime, 5000, "restarted timer starts at the new 'now'");
   assertEqual(restarted.regionOf, state.regionOf, "restarted state keeps the same puzzle regions");
+}
+
+console.log("\nrequestHint(): delegates to the solver and tracks hintsUsed");
+{
+  const state = createGameState(puzzle, "lapCat", 1000);
+  tapCell(state, 4); // (1,0) -> X, region0's other row-1 candidate
+  tapCell(state, 5); // (1,1) -> X, region0 now confined to row0
+  const hint = requestHint(state);
+  assertEqual(hint.type, "eliminate", "solver finds an elimination from these marks");
+  assertEqual(state.hintsUsed, 1, "an actionable hint increments hintsUsed");
+
+  requestHint(state);
+  assertEqual(state.hintsUsed, 2, "each actionable hint call increments hintsUsed again");
+}
+
+console.log("\nrequestHint(): returns 'solved' and does not touch hintsUsed once the game is won");
+{
+  const state = createGameState(puzzle, "lapCat", 1000);
+  for (const { row, col } of puzzle.solution) {
+    tapCell(state, row * 4 + col);
+    tapCell(state, row * 4 + col);
+  }
+  assertTrue(state.won, "sanity: game is won");
+  const hint = requestHint(state);
+  assertEqual(hint.type, "solved", "hint short-circuits once the game is already won");
+  assertEqual(state.hintsUsed, 0, "hintsUsed is untouched when the game is already solved");
 }
 
 summary();

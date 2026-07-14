@@ -218,6 +218,28 @@ h1 {
   color: rgba(0, 0, 0, 0.55);
 }
 
+#hint-message {
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  padding: 0.4rem 1rem;
+}
+
+.cell.hint-highlight {
+  outline: 3px solid var(--accent);
+  outline-offset: -3px;
+  animation: hint-pulse 1s ease-in-out infinite alternate;
+}
+
+@keyframes hint-pulse {
+  from {
+    outline-color: var(--accent);
+  }
+  to {
+    outline-color: transparent;
+  }
+}
+
 #win-banner {
   text-align: center;
   background: var(--win-bg);

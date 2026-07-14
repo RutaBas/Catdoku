@@ -4,7 +4,7 @@
 (function () {
 const CatdokuBoard =
   typeof module !== "undefined" && module.exports ? require("./board.js") : window.CatdokuBoard;
-const { cellIndex, rowColOf } = CatdokuBoard;
+const { cellIndex, rowColOf, MARK } = CatdokuBoard;
 
 const TIER = Object.freeze({
   LAP_CAT: 1,
@@ -257,6 +257,83 @@ function buildTierFns(state, { includeTrial }) {
   return tiers;
 }
 
+// Builds a solver state that reflects the player's current marks: X'd cells
+// become eliminated candidates, CAT'd cells are placed (cascading the usual
+// row/col/region/diagonal eliminations). Used only for hints — never mutates
+// the player's actual marks.
+function buildStateFromMarks(N, regionOf, marks) {
+  const state = createSolverState(N, regionOf);
+
+  for (let cell = 0; cell < marks.length; cell++) {
+    if (marks[cell] === MARK.X) state.candidate[cell] = false;
+  }
+  for (let cell = 0; cell < marks.length; cell++) {
+    if (marks[cell] === MARK.CAT) {
+      const { row } = rowColOf(N, cell);
+      if (state.catOfRow[row] === -1) placeCat(state, cell);
+    }
+  }
+
+  return state;
+}
+
+// Finds the single next logical deduction reachable from the player's
+// current marks: either a forced cat placement or one candidate elimination
+// (never both, never a random reveal, never a guess). Returns one of:
+//   { type: "solved" }               — every row already has a cat
+//   { type: "conflict" }             — current marks can't lead to any solution
+//   { type: "place", cell, tier }    — place a cat at this cell
+//   { type: "eliminate", cell, tier } — mark this cell with an X
+//   { type: "stuck" }                — no technique in the ladder makes progress
+function catCellsConflict(N, regionOf, catCells) {
+  const rows = new Set(), cols = new Set(), regions = new Set();
+  for (const cell of catCells) {
+    const { row, col } = rowColOf(N, cell);
+    if (rows.has(row) || cols.has(col) || regions.has(regionOf[cell])) return true;
+    rows.add(row);
+    cols.add(col);
+    regions.add(regionOf[cell]);
+  }
+  for (let i = 0; i < catCells.length; i++) {
+    for (let j = i + 1; j < catCells.length; j++) {
+      const a = rowColOf(N, catCells[i]);
+      const b = rowColOf(N, catCells[j]);
+      if (Math.abs(a.row - b.row) === 1 && Math.abs(a.col - b.col) === 1) return true;
+    }
+  }
+  return false;
+}
+
+function getHint(N, regionOf, marks) {
+  const catCells = [];
+  for (let cell = 0; cell < marks.length; cell++) {
+    if (marks[cell] === MARK.CAT) catCells.push(cell);
+  }
+  if (catCellsConflict(N, regionOf, catCells)) return { type: "conflict" };
+
+  const state = buildStateFromMarks(N, regionOf, marks);
+
+  if (hasContradiction(state)) return { type: "conflict" };
+  if (isSolved(state)) return { type: "solved" };
+
+  const tiers = buildTierFns(state, { includeTrial: true });
+  for (const { tier, fn } of tiers) {
+    const beforeCatOfRow = state.catOfRow.slice();
+    const beforeCandidate = state.candidate.slice();
+    if (!fn()) continue;
+
+    const placedRow = state.catOfRow.findIndex((col, row) => col !== -1 && beforeCatOfRow[row] === -1);
+    if (placedRow !== -1) {
+      return { type: "place", cell: cellIndex(N, placedRow, state.catOfRow[placedRow]), tier };
+    }
+
+    const eliminatedCell = beforeCandidate.findIndex((wasTrue, i) => wasTrue && !state.candidate[i]);
+    return { type: "eliminate", cell: eliminatedCell, tier };
+  }
+
+  return { type: "stuck" };
+}
+
 function runToFixpoint(state, { includeTrial }) {
   const tiers = buildTierFns(state, { includeTrial });
   let maxTierUsed = 0;
@@ -338,6 +415,7 @@ if (typeof module !== "undefined" && module.exports) {
     solve,
     countSolutions,
     findSolutions,
+    getHint,
     _internal: {
       createSolverState,
       cloneState,
@@ -354,7 +432,7 @@ if (typeof module !== "undefined" && module.exports) {
     },
   };
 } else if (typeof window !== "undefined") {
-  window.CatdokuSolver = { TIER, solve, countSolutions, findSolutions };
+  window.CatdokuSolver = { TIER, solve, countSolutions, findSolutions, getHint };
 }
 
 })();

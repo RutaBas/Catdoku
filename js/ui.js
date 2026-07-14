@@ -26,11 +26,14 @@
     undoBtn: document.getElementById("undo-btn"),
     clearBtn: document.getElementById("clear-btn"),
     restartBtn: document.getElementById("restart-btn"),
+    hintBtn: document.getElementById("hint-btn"),
+    hintMessage: document.getElementById("hint-message"),
   };
 
   let gameState = null;
   let cellEls = [];
   let timerHandle = null;
+  let hintedCellIdx = null;
   const recentlyUsedByTier = {};
 
   function showScreen(name) {
@@ -70,6 +73,8 @@
     const level = CatdokuGenerator.DIFFICULTY_LEVELS.find((l) => l.key === difficultyKey);
     el.difficultyLabel.textContent = level.name;
     el.winBanner.hidden = true;
+    hintedCellIdx = null;
+    setHintMessage("");
     showScreen("game");
     buildBoardDom(gameState);
     startTimerLoop();
@@ -79,6 +84,8 @@
     if (!gameState) return;
     gameState = CatdokuGame.restartGameState(gameState);
     el.winBanner.hidden = true;
+    hintedCellIdx = null;
+    setHintMessage("");
     buildBoardDom(gameState);
     startTimerLoop();
   }
@@ -149,14 +156,57 @@
 
   function onCellTap(cellIdx) {
     if (!gameState || gameState.won) return;
+    clearHintHighlight();
     CatdokuGame.tapCell(gameState, cellIdx);
     renderCellContent(cellIdx, gameState.marks[cellIdx]);
     updateStats(gameState);
     if (gameState.won) handleWin();
   }
 
+  function clearHintHighlight() {
+    if (hintedCellIdx !== null && cellEls[hintedCellIdx]) {
+      cellEls[hintedCellIdx].classList.remove("hint-highlight");
+    }
+    hintedCellIdx = null;
+  }
+
+  function setHintMessage(text) {
+    el.hintMessage.textContent = text;
+    el.hintMessage.hidden = !text;
+  }
+
+  const HINT_TIER_NAMES = {
+    1: "Lap Cat",
+    2: "Windowsill Watcher",
+    3: "Yard Patroller",
+    4: "Alley Prowler",
+    5: "Rooftop Sniper",
+    6: "Apex Predator",
+  };
+
+  function onHintTap() {
+    if (!gameState) return;
+    clearHintHighlight();
+
+    const hint = CatdokuGame.requestHint(gameState);
+    if (hint.type === "place" || hint.type === "eliminate") {
+      hintedCellIdx = hint.cell;
+      cellEls[hint.cell].classList.add("hint-highlight");
+      const action = hint.type === "place" ? "Place a cat here" : "This cell can be eliminated";
+      setHintMessage(`${action} — ${HINT_TIER_NAMES[hint.tier]} logic.`);
+    } else if (hint.type === "conflict") {
+      setHintMessage("Your current marks conflict with any valid solution — check your recent X's and cats.");
+    } else if (hint.type === "stuck") {
+      setHintMessage("No further hint available from here.");
+    } else if (hint.type === "solved") {
+      setHintMessage("Already solved!");
+    }
+  }
+
   function handleWin() {
     stopTimerLoop();
+    clearHintHighlight();
+    setHintMessage("");
     const seconds = Math.round(CatdokuGame.getElapsedMs(gameState) / 1000);
     el.winMessage.textContent = `Solved in ${formatTime(seconds * 1000)} and ${gameState.moveCount} moves!`;
     el.winBanner.hidden = false;
@@ -204,6 +254,7 @@
       updateStats(gameState);
     });
     el.restartBtn.addEventListener("click", restartCurrentGame);
+    el.hintBtn.addEventListener("click", onHintTap);
     el.winNewGameBtn.addEventListener("click", () => {
       if (gameState) startNewGame(gameState.difficultyKey);
     });
