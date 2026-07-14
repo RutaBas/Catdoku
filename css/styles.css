@@ -2,19 +2,31 @@
   --bg: #111111;
   --panel: #1c1c1c;
   --text: #f2f2f2;
+  --text-muted: #a0a0a0;
   --accent: #ff9f43;
+  --cell-border-strong: #0a0a0a;
+  --cell-border-soft: rgba(255, 255, 255, 0.18);
+  --win-bg: #1c3a1c;
 }
 
 :root[data-theme="light"] {
   --bg: #f7f7f7;
   --panel: #ffffff;
   --text: #111111;
+  --text-muted: #5a5a5a;
   --accent: #ff9f43;
+  --cell-border-strong: #ffffff;
+  --cell-border-soft: rgba(0, 0, 0, 0.15);
+  --win-bg: #dff5df;
 }
 
 * {
   box-sizing: border-box;
   touch-action: manipulation;
+}
+
+[hidden] {
+  display: none !important;
 }
 
 html, body {
@@ -31,4 +43,200 @@ body {
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
-/* Board/UI rules added in step 4. */
+#app {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+}
+
+h1 {
+  margin: 0.4em 0 0;
+  text-align: center;
+  font-size: 2rem;
+}
+
+.tagline {
+  text-align: center;
+  color: var(--text-muted);
+  margin: 0.25em 0 1.5em;
+}
+
+.btn {
+  min-height: 44px;
+  min-width: 44px;
+  padding: 0.6em 1em;
+  border: none;
+  border-radius: 10px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1rem;
+  cursor: pointer;
+}
+
+.btn:active {
+  transform: scale(0.97);
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: #1a1200;
+  font-weight: 600;
+}
+
+.icon-btn {
+  min-height: 44px;
+  min-width: 44px;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font-size: 1.4rem;
+  cursor: pointer;
+}
+
+/* --- Start screen --- */
+#start-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 0 1.25rem;
+  overflow-y: auto;
+}
+
+#continue-row {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+
+#continue-row .btn {
+  width: 100%;
+  max-width: 320px;
+}
+
+#difficulty-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-width: 420px;
+  margin: 0 auto;
+  width: 100%;
+  padding-bottom: 1.5rem;
+}
+
+.diff-btn {
+  min-height: 56px;
+  border: none;
+  border-radius: 12px;
+  background: var(--panel);
+  color: var(--text);
+  font-size: 1.05rem;
+  text-align: left;
+  padding: 0 1.1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.diff-btn:active {
+  transform: scale(0.98);
+}
+
+.diff-btn .diff-grid-size {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+}
+
+/* --- Game screen --- */
+#game-screen {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+#game-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.5rem;
+}
+
+#difficulty-label {
+  flex: 1;
+  font-weight: 600;
+  text-align: center;
+}
+
+#stats {
+  display: flex;
+  gap: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  min-width: 96px;
+  justify-content: flex-end;
+}
+
+#board-wrap {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 0;
+  padding: 0.5rem;
+}
+
+#board {
+  display: grid;
+  border: 3px solid var(--cell-border-strong);
+  border-radius: 4px;
+  overflow: hidden;
+  touch-action: manipulation;
+}
+
+.cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  color: #1a1a1a;
+}
+
+.cell .mark-cat {
+  font-size: 1.3em;
+}
+
+.cell .mark-x {
+  font-size: 0.9em;
+  font-weight: 700;
+  color: rgba(0, 0, 0, 0.55);
+}
+
+#win-banner {
+  text-align: center;
+  background: var(--win-bg);
+  border-radius: 12px;
+  margin: 0.5rem 0.75rem;
+  padding: 0.75rem;
+}
+
+#win-banner p {
+  margin: 0 0 0.6rem;
+  font-weight: 600;
+}
+
+#controls {
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem calc(0.5rem + env(safe-area-inset-bottom));
+}
+
+#controls .btn {
+  flex: 1;
+}

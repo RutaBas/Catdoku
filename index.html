@@ -12,7 +12,43 @@
 <link rel="stylesheet" href="css/styles.css">
 </head>
 <body>
-<!-- Step 4 builds the board UI and difficulty-select start screen here. -->
+<div id="app">
+  <section id="start-screen">
+    <h1>Catdoku</h1>
+    <p class="tagline">One cat per row, column, and territory.</p>
+    <div id="continue-row" hidden>
+      <button id="continue-btn" class="btn btn-primary" type="button">Continue</button>
+    </div>
+    <div id="difficulty-list"></div>
+  </section>
+
+  <section id="game-screen" hidden>
+    <header id="game-header">
+      <button id="back-btn" class="icon-btn" type="button" aria-label="Back to menu">&larr;</button>
+      <div id="difficulty-label"></div>
+      <div id="stats">
+        <span id="timer">0:00</span>
+        <span id="move-count">0 moves</span>
+      </div>
+    </header>
+
+    <div id="board-wrap">
+      <div id="board" role="grid"></div>
+    </div>
+
+    <div id="win-banner" hidden>
+      <p id="win-message"></p>
+      <button id="win-new-game-btn" class="btn btn-primary" type="button">New Game</button>
+    </div>
+
+    <footer id="controls">
+      <button id="undo-btn" class="btn" type="button">Undo</button>
+      <button id="clear-btn" class="btn" type="button">Clear</button>
+      <button id="restart-btn" class="btn" type="button">Restart</button>
+    </footer>
+  </section>
+</div>
+
 <script src="js/rng.js"></script>
 <script src="js/board.js"></script>
 <script src="js/solver.js"></script>
