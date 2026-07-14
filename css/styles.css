@@ -1,0 +1,34 @@
+:root {
+  --bg: #111111;
+  --panel: #1c1c1c;
+  --text: #f2f2f2;
+  --accent: #ff9f43;
+}
+
+:root[data-theme="light"] {
+  --bg: #f7f7f7;
+  --panel: #ffffff;
+  --text: #111111;
+  --accent: #ff9f43;
+}
+
+* {
+  box-sizing: border-box;
+  touch-action: manipulation;
+}
+
+html, body {
+  margin: 0;
+  height: 100dvh;
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+}
+
+body {
+  display: flex;
+  flex-direction: column;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+/* Board/UI rules added in step 4. */
