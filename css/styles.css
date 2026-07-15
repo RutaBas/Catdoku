@@ -10,7 +10,6 @@
   --accent-strong: #c1652a;
   --cell-border-strong: #0a0806;
   --cell-border-soft: rgba(243, 230, 214, 0.14);
-  --win-bg: #3a2a16;
   --shadow-color: rgba(10, 6, 3, 0.4);
 }
 
@@ -23,7 +22,6 @@
   --accent-strong: #c1652a;
   --cell-border-strong: #fffbf3;
   --cell-border-soft: rgba(42, 31, 22, 0.14);
-  --win-bg: #f5e6c8;
   --shadow-color: rgba(122, 92, 58, 0.2);
 }
 
@@ -81,7 +79,24 @@ h1 {
 .tagline {
   text-align: center;
   color: var(--text-muted);
-  margin: 0.25em 0 1.5em;
+  margin: 0.25em 0 0.75em;
+}
+
+/* Double-tap is not a gesture anyone guesses — say it out loud on the
+   start screen rather than hiding it in a settings panel nobody opens. */
+.how-to {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2em;
+  text-align: center;
+  color: var(--text-muted);
+  font-size: 0.8rem;
+  margin: 0 0 1.5em;
+}
+
+.how-to strong {
+  color: var(--accent);
+  font-weight: 700;
 }
 
 .btn {
@@ -215,6 +230,26 @@ h1 {
   justify-content: flex-end;
 }
 
+#lives {
+  display: flex;
+  gap: 0.15rem;
+  font-size: 0.95rem;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.life {
+  transition: opacity 0.25s ease, filter 0.25s ease, transform 0.25s ease;
+}
+
+/* Spent lives stay in place and grey out rather than vanishing — the row
+   never reflows, and you can still see how many you started with. */
+.life-spent {
+  opacity: 0.28;
+  filter: grayscale(1);
+  transform: scale(0.86);
+}
+
 #board-wrap {
   position: relative;
   flex: 1;
@@ -225,6 +260,12 @@ h1 {
   padding: 0.5rem;
 }
 
+/* --- Result overlay (win / lose) --- */
+#result-overlay {
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
 #confetti-layer {
   position: absolute;
   inset: 0;
@@ -232,12 +273,17 @@ h1 {
   overflow: hidden;
 }
 
+/* Paper rectangles rather than emoji glyphs — size, colour, drift and spin
+   are all set per-piece from ui.js so no two fall alike. */
 .confetti-piece {
   position: absolute;
-  top: 40%;
-  font-size: 1.6rem;
+  top: -24px;
+  border-radius: 1px;
   opacity: 0;
-  animation: confetti-fall 1.2s ease-out forwards;
+  animation-name: confetti-fall;
+  animation-timing-function: cubic-bezier(0.25, 0.6, 0.5, 1);
+  animation-fill-mode: forwards;
+  will-change: transform, opacity;
 }
 
 @keyframes confetti-fall {
@@ -245,21 +291,96 @@ h1 {
     transform: translate(0, 0) rotate(0deg);
     opacity: 0;
   }
-  15% {
+  8% {
+    opacity: 1;
+  }
+  80% {
     opacity: 1;
   }
   100% {
-    transform: translate(var(--drift, 0px), 160px) rotate(45deg);
+    transform: translate(var(--drift, 0px), 105vh) rotate(var(--spin, 360deg));
     opacity: 0;
+  }
+}
+
+#result-panel {
+  position: relative;
+  z-index: 1; /* above the confetti layer */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  max-width: 360px;
+  /* The scrim is dark in BOTH themes, so this text can't use --text — it
+     would go near-black and vanish in light mode. Pin it light. */
+  color: #f3e6d6;
+  text-align: center;
+  animation: result-pop 0.42s cubic-bezier(0.2, 1.25, 0.4, 1) both;
+}
+
+#result-img {
+  max-width: 100%;
+  max-height: 52vh;
+  object-fit: contain;
+  filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.5));
+}
+
+#result-message {
+  margin: 0.5rem 0 0;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+#result-stats {
+  margin: 0 0 0.5rem;
+  font-size: 0.85rem;
+  color: rgba(243, 230, 214, 0.72);
+}
+
+.result-actions {
+  display: flex;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.result-actions .btn {
+  flex: 1;
+}
+
+@keyframes result-pop {
+  from {
+    transform: scale(0.82) translateY(12px);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1) translateY(0);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .confetti-piece {
+    display: none;
+  }
+  #result-panel {
+    animation: none;
   }
 }
 
 #board {
   display: grid;
+  /* NOTE: cellFromEvent() in ui.js subtracts BOARD_BORDER_PX to map pointer
+     coords to cells — keep that constant in sync with this border-width. */
   border: 3px solid var(--cell-border-strong);
   border-radius: 10px;
   overflow: hidden;
-  touch-action: manipulation;
+  /* `none`, not `manipulation`: swipe-to-mark must not scroll or zoom the page. */
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
+  -webkit-touch-callout: none; /* stop iOS long-press copy/paste popup mid-drag */
   box-shadow: 0 6px 20px var(--shadow-color);
 }
 
@@ -274,6 +395,20 @@ h1 {
   color: #1a1a1a;
 }
 
+/* Wrong cat: the cell can't change (the mark is refused), so the shake is
+   the only thing telling the player where their mistake landed. */
+.cell-wrong {
+  animation: cell-shake 0.4s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+  box-shadow: inset 0 0 0 3px #e5484d;
+}
+
+@keyframes cell-shake {
+  10%, 90% { transform: translateX(-2px); }
+  20%, 80% { transform: translateX(3px); }
+  30%, 50%, 70% { transform: translateX(-4px); }
+  40%, 60% { transform: translateX(4px); }
+}
+
 .cell .mark-cat {
   width: 78%;
   height: 78%;
@@ -282,10 +417,20 @@ h1 {
   animation: mark-in 0.16s cubic-bezier(0.33, 0.1, 0.25, 1);
 }
 
+/* Percentage-sized like .mark-cat above, so both marks scale with the board
+   instead of the X being pinned to a fixed rem. It previously rendered at a
+   constant ~16px, which is only ~13% of a cell on the bigger grids — hence
+   looking tiny next to the 78% cat. Tune `width`/`height` to resize;
+   stroke-width is in viewBox units so the weight tracks automatically. */
 .cell .mark-x {
-  font-size: 0.9em;
-  font-weight: 700;
-  color: rgba(28, 23, 18, 0.6);
+  width: 60%;
+  height: 60%;
+  flex-shrink: 0; /* Safari collapses percentage-sized SVG flex items without this */
+  fill: none;
+  stroke: rgba(28, 23, 18, 0.62);
+  stroke-width: 3.2;
+  stroke-linecap: round;
+  pointer-events: none;
   animation: mark-in 0.16s cubic-bezier(0.33, 0.1, 0.25, 1);
 }
 
@@ -322,47 +467,6 @@ h1 {
   }
 }
 
-#win-banner {
-  text-align: center;
-  background: var(--win-bg);
-  border-radius: 16px;
-  margin: 0.5rem 0.75rem;
-  padding: 0.75rem;
-  box-shadow: 0 6px 20px var(--shadow-color);
-  animation: win-pop 0.4s ease-out;
-}
-
-#win-banner p:first-child {
-  font-family: "Baloo 2", "Nunito", sans-serif;
-  font-size: 1.1rem;
-}
-
-@keyframes win-pop {
-  from {
-    transform: scale(0.85);
-    opacity: 0;
-  }
-  60% {
-    transform: scale(1.03);
-    opacity: 1;
-  }
-  to {
-    transform: scale(1);
-  }
-}
-
-#win-banner p {
-  margin: 0 0 0.4rem;
-  font-weight: 600;
-}
-
-#win-stats {
-  font-weight: 400 !important;
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin-bottom: 0.6rem !important;
-}
-
 #controls {
   display: flex;
   gap: 0.5rem;
@@ -373,17 +477,7 @@ h1 {
   flex: 1;
 }
 
-/* --- Win actions / share --- */
-.win-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.win-actions .btn {
-  flex: 1;
-}
-
-#share-toast {
+#toast {
   position: fixed;
   left: 50%;
   bottom: calc(1.5rem + env(safe-area-inset-bottom));

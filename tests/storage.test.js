@@ -9,7 +9,7 @@ const {
   loadSettings,
   saveSettings,
 } = require("../js/storage.js");
-const { createGameState, tapCell, toSaveData, fromSaveData } = require("../js/game.js");
+const { createGameState, toggleCell, placeCat, toSaveData, fromSaveData } = require("../js/game.js");
 const { assertTrue, assertFalse, assertEqual, summary } = require("./assert.js");
 
 function fakeStore() {
@@ -43,8 +43,8 @@ console.log("saveGame()/loadGame(): round-trips an in-progress game");
   assertEqual(loadGame(store), null, "no save yet -> null");
 
   const state = createGameState(puzzle, "lapCat", 1000);
-  tapCell(state, 0);
-  tapCell(state, 5);
+  toggleCell(state, 0);
+  toggleCell(state, 5);
   const saveData = toSaveData(state, 4000); // 3000ms elapsed
   saveGame(saveData, store);
 
@@ -57,13 +57,36 @@ console.log("saveGame()/loadGame(): round-trips an in-progress game");
 console.log("\nfromSaveData(): resumes as if paused across the closed-app gap");
 {
   const state = createGameState(puzzle, "lapCat", 1000);
-  tapCell(state, 0);
+  toggleCell(state, 0);
   const saveData = toSaveData(state, 6000); // 5000ms elapsed at save time
   // Resume "an hour later" -> elapsed time should still read ~5000ms, not ~1hr+5000ms.
   const resumed = fromSaveData(saveData, 6000 + 3600000);
   assertEqual(6000 + 3600000 - resumed.startTime, 5000, "reconstructed startTime preserves elapsed time, not wall-clock gap");
   assertEqual(resumed.won, false, "resumed game is never in a won state");
   assertEqual(resumed.moveCount, 1, "move count carries over");
+}
+
+console.log("\ntoSaveData()/fromSaveData(): spent lives survive a close-and-resume");
+{
+  const state = createGameState(puzzle, "lapCat", 1000);
+  placeCat(state, 0); // (0,0) is not in this puzzle's solution -> a mistake
+  assertEqual(state.mistakes, 1, "sanity: one life spent");
+
+  const resumed = fromSaveData(toSaveData(state, 4000), 9000);
+  assertEqual(resumed.mistakes, 1, "resuming does not quietly hand the life back");
+  assertEqual(resumed.maxMistakes, 3, "the mistake allowance carries over");
+  assertEqual(resumed.lost, false, "a resumable save is never a lost one");
+}
+
+console.log("\nfromSaveData(): tolerates a save with no mistake fields");
+{
+  const state = createGameState(puzzle, "lapCat", 1000);
+  const saveData = toSaveData(state, 4000);
+  delete saveData.mistakes;
+  delete saveData.maxMistakes;
+  const resumed = fromSaveData(saveData, 4000);
+  assertEqual(resumed.mistakes, 0, "missing mistake count defaults to 0");
+  assertEqual(resumed.maxMistakes, 3, "missing allowance defaults to 3");
 }
 
 console.log("\nclearSave(): removes the save");

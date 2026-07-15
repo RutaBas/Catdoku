@@ -23,6 +23,11 @@
       <button id="settings-btn" class="icon-btn" type="button" aria-label="Settings">⚙️</button>
     </div>
     <p class="tagline">One cat per row, column, and territory.</p>
+    <p class="how-to">
+      <span>Tap or <strong>swipe</strong> to rule cells out</span>
+      <span><strong>Double-tap</strong> to place a cat</span>
+      <span>3 mistakes and the cats get away</span>
+    </p>
     <div id="continue-row" hidden>
       <button id="continue-btn" class="btn btn-primary" type="button">Continue</button>
     </div>
@@ -33,6 +38,7 @@
     <header id="game-header">
       <button id="back-btn" class="icon-btn" type="button" aria-label="Back to menu">&larr;</button>
       <div id="difficulty-label"></div>
+      <div id="lives" role="status" aria-label="Mistakes remaining"></div>
       <div id="stats">
         <span id="timer">0:00</span>
         <span id="move-count">0 moves</span>
@@ -43,16 +49,6 @@
 
     <div id="board-wrap">
       <div id="board" role="grid"></div>
-      <div id="confetti-layer" aria-hidden="true"></div>
-    </div>
-
-    <div id="win-banner" hidden>
-      <p id="win-message"></p>
-      <p id="win-stats"></p>
-      <div class="win-actions">
-        <button id="win-share-btn" class="btn" type="button">Share</button>
-        <button id="win-new-game-btn" class="btn btn-primary" type="button">New Game</button>
-      </div>
     </div>
 
     <footer id="controls">
@@ -62,6 +58,19 @@
       <button id="hint-btn" class="btn" type="button">Hint</button>
     </footer>
   </section>
+
+  <div id="result-overlay" class="overlay" hidden>
+    <div id="confetti-layer" aria-hidden="true"></div>
+    <div id="result-panel" role="dialog" aria-modal="true" aria-labelledby="result-message">
+      <img id="result-img" src="" alt="">
+      <p id="result-message"></p>
+      <p id="result-stats"></p>
+      <div class="result-actions">
+        <button id="result-secondary-btn" class="btn" type="button"></button>
+        <button id="result-primary-btn" class="btn btn-primary" type="button"></button>
+      </div>
+    </div>
+  </div>
 
   <div id="settings-overlay" class="overlay" hidden>
     <div id="settings-panel" class="panel" role="dialog" aria-label="Settings" aria-modal="true">
@@ -82,7 +91,7 @@
     </div>
   </div>
 
-  <div id="share-toast" hidden>Copied to clipboard!</div>
+  <div id="toast" role="status" aria-live="polite" hidden></div>
 </div>
 
 <script src="js/rng.js"></script>

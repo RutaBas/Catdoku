@@ -5,7 +5,9 @@
 const isNode = typeof module !== "undefined" && module.exports;
 const CatdokuBoard = isNode ? require("./board.js") : window.CatdokuBoard;
 const CatdokuSolver = isNode ? require("./solver.js") : window.CatdokuSolver;
-const { MARK, cellIndex, rowColOf, createMarkState, cycleMark, isValidSolution } = CatdokuBoard;
+const { MARK, cellIndex, rowColOf, createMarkState, actionFor, isValidSolution } = CatdokuBoard;
+
+const MAX_MISTAKES = 3;
 
 // puzzle: { N, regionOf, solution, maxTierUsed }
 function createGameState(puzzle, difficultyKey, now = Date.now()) {
@@ -21,8 +23,21 @@ function createGameState(puzzle, difficultyKey, now = Date.now()) {
     startTime: now,
     endTime: null,
     won: false,
+    lost: false,
+    mistakes: 0,
+    maxMistakes: MAX_MISTAKES,
     hintsUsed: 0,
   };
+}
+
+function isOver(state) {
+  return state.won || state.lost;
+}
+
+// The puzzle's solution is one {row, col} per row; a cat anywhere else is wrong.
+function isSolutionCell(state, cell) {
+  const { row, col } = rowColOf(state.N, cell);
+  return state.solution.some((cat) => cat.row === row && cat.col === col);
 }
 
 // Restart the same puzzle: fresh marks/history/timer, same regionOf/solution.
@@ -34,29 +49,85 @@ function restartGameState(state, now = Date.now()) {
   );
 }
 
-function tapCell(state, cell) {
-  if (state.won) return state;
+// Commits a batch of { cell, from, to } as ONE history entry / one move.
+// A single tap is a one-element batch; a swipe is an N-element batch. Both
+// undo in a single step, which is the whole point — a drag that painted six
+// X's should not take six taps of Undo to reverse.
+function applyChanges(state, changes, now = Date.now()) {
+  if (isOver(state) || changes.length === 0) return state;
 
-  const previousMark = state.marks[cell];
-  state.marks[cell] = cycleMark(previousMark);
-  state.history.push({ cell, previousMark });
+  for (const { cell, to } of changes) state.marks[cell] = to;
+  state.history.push(changes);
   state.moveCount++;
 
-  checkWin(state);
+  checkWin(state, now);
   return state;
+}
+
+// Toggles a single cell per board.actionFor (EMPTY<->X, or lifts a cat off).
+function toggleCell(state, cell, now = Date.now()) {
+  if (isOver(state)) return state;
+  const action = actionFor(state.marks[cell]);
+  if (!action) return state;
+  return applyChanges(state, [{ cell, from: action.from, to: action.to }], now);
+}
+
+// Double-tap commit. This is the ONLY way a cat reaches the board, so every
+// cat on screen is provably correct and `checkWin` can never see a wrong one.
+// Returns a result object rather than throwing so the UI can decide how loud
+// to be about it.
+function placeCat(state, cell, now = Date.now()) {
+  if (isOver(state)) return { ok: false, reason: "over" };
+  if (state.marks[cell] === MARK.CAT) return { ok: false, reason: "already" };
+
+  if (!isSolutionCell(state, cell)) {
+    state.mistakes++;
+    const gameOver = state.mistakes >= state.maxMistakes;
+    if (gameOver) {
+      state.lost = true;
+      state.endTime = now;
+    }
+    return {
+      ok: false,
+      reason: "mistake",
+      mistakes: state.mistakes,
+      remaining: Math.max(0, state.maxMistakes - state.mistakes),
+      gameOver,
+    };
+  }
+
+  const from = state.marks[cell];
+  applyChanges(state, [{ cell, from, to: MARK.CAT }], now);
+  return { ok: true, reason: "placed" };
 }
 
 function undoLastMove(state, now = Date.now()) {
-  if (state.won || state.history.length === 0) return state;
+  if (isOver(state) || state.history.length === 0) return state;
 
-  const { cell, previousMark } = state.history.pop();
-  state.marks[cell] = previousMark;
+  const changes = state.history.pop();
+  for (const { cell, from } of changes) state.marks[cell] = from;
   return state;
 }
 
-// Wipes all marks back to empty without touching history, move count, or timer.
+// Rewinds the last commit as if it never happened — history entry gone AND
+// the move counter rolled back. Used only by the double-tap handler, which
+// optimistically paints an X on the first tap (so single taps stay instant)
+// and takes it back when the second tap arrives. Returns the reverted
+// changes so the caller knows which cells to repaint, or null if there was
+// nothing to revert.
+function revertLastCommit(state) {
+  if (isOver(state) || state.history.length === 0) return null;
+
+  const changes = state.history.pop();
+  for (const { cell, from } of changes) state.marks[cell] = from;
+  state.moveCount = Math.max(0, state.moveCount - 1);
+  return changes;
+}
+
+// Wipes the board but deliberately keeps `mistakes` — Clear is a
+// "let me rethink this" button, not a fresh run. Restart resets lives.
 function clearAllMarks(state) {
-  if (state.won) return state;
+  if (isOver(state)) return state;
   state.marks = createMarkState(state.N);
   return state;
 }
@@ -70,6 +141,8 @@ function catCellsOf(state) {
 }
 
 function checkWin(state, now = Date.now()) {
+  if (isOver(state)) return state.won;
+
   const catCells = catCellsOf(state);
   if (catCells.length !== state.N) return false;
 
@@ -82,7 +155,7 @@ function checkWin(state, now = Date.now()) {
 }
 
 function getElapsedMs(state, now = Date.now()) {
-  const end = state.won ? state.endTime : now;
+  const end = isOver(state) ? state.endTime : now;
   return end - state.startTime;
 }
 
@@ -117,6 +190,7 @@ function buildShareText(state, difficultyName, now = Date.now()) {
 // player's current marks. Never mutates marks — only reveals where to look.
 function requestHint(state) {
   if (state.won) return { type: "solved" };
+  if (state.lost) return { type: "lost" };
 
   const hint = CatdokuSolver.getHint(state.N, state.regionOf, state.marks);
   if (hint.type === "place" || hint.type === "eliminate") {
@@ -130,7 +204,7 @@ function requestHint(state) {
 // across the gap instead of the clock having run the whole time app was closed.
 function toSaveData(state, now = Date.now()) {
   return {
-    version: 1,
+    version: 2,
     N: state.N,
     regionOf: state.regionOf,
     solution: state.solution,
@@ -140,6 +214,8 @@ function toSaveData(state, now = Date.now()) {
     history: state.history,
     moveCount: state.moveCount,
     hintsUsed: state.hintsUsed,
+    mistakes: state.mistakes,
+    maxMistakes: state.maxMistakes,
     elapsedMsAtSave: getElapsedMs(state, now),
   };
 }
@@ -155,17 +231,28 @@ function fromSaveData(saved, now = Date.now()) {
     history: saved.history,
     moveCount: saved.moveCount,
     hintsUsed: saved.hintsUsed || 0,
+    // Mistakes ride along in the save, so closing the app mid-run and
+    // resuming doesn't quietly hand back the lives you already spent.
+    mistakes: saved.mistakes || 0,
+    maxMistakes: saved.maxMistakes || MAX_MISTAKES,
     startTime: now - saved.elapsedMsAtSave,
     endTime: null,
     won: false,
+    lost: false,
   };
 }
 
 const gameApi = {
+  MAX_MISTAKES,
   createGameState,
   restartGameState,
-  tapCell,
+  applyChanges,
+  toggleCell,
+  placeCat,
+  isSolutionCell,
+  isOver,
   undoLastMove,
+  revertLastCommit,
   clearAllMarks,
   checkWin,
   getElapsedMs,

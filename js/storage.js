@@ -4,7 +4,11 @@
 // (no real localStorage there).
 
 (function () {
-  const SAVE_KEY = "catdoku.save.v1";
+  // v2: history entries became arrays of changes (one entry per tap OR per
+  // swipe) and saves carry a mistake count. Bumping the key rather than
+  // migrating means any v1 save in the wild is simply ignored — cheaper than
+  // a migration path for a half-finished puzzle.
+  const SAVE_KEY = "catdoku.save.v2";
   const STATS_KEY = "catdoku.stats.v1";
   const SETTINGS_KEY = "catdoku.settings.v1";
 

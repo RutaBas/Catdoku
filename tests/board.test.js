@@ -2,7 +2,7 @@ const {
   MARK,
   validateRegions,
   createMarkState,
-  cycleMark,
+  actionFor,
   isDiagonallyAdjacent,
   isValidSolution,
 } = require("../js/board.js");
@@ -67,12 +67,22 @@ assertFalse(
   "region 0 split into two disconnected cells -> invalid"
 );
 
-console.log("\nMark-state cycling");
+console.log("\nMark state");
 const marks = createMarkState(2);
 assertEqual(marks.length, 4, "createMarkState(2) allocates 2x2=4 cells");
 assertEqual(marks[0], MARK.EMPTY, "cells start EMPTY");
-assertEqual(cycleMark(MARK.EMPTY), MARK.X, "EMPTY cycles to X");
-assertEqual(cycleMark(MARK.X), MARK.CAT, "X cycles to CAT");
-assertEqual(cycleMark(MARK.CAT), MARK.EMPTY, "CAT cycles back to EMPTY");
+
+console.log("\nactionFor(): taps toggle X and never reach CAT");
+assertEqual(actionFor(MARK.EMPTY).to, MARK.X, "EMPTY taps to X");
+assertEqual(actionFor(MARK.X).to, MARK.EMPTY, "X taps back to EMPTY");
+assertEqual(actionFor(MARK.CAT).to, MARK.EMPTY, "CAT taps off to EMPTY");
+assertTrue(
+  [MARK.EMPTY, MARK.X, MARK.CAT].every((m) => actionFor(m).to !== MARK.CAT),
+  "no tap transition ever produces a CAT — that is placeCat's job alone"
+);
+assertTrue(
+  [MARK.EMPTY, MARK.X, MARK.CAT].every((m) => actionFor(m).from === m),
+  "action.from always echoes the current mark, so drags can filter on it"
+);
 
 summary();

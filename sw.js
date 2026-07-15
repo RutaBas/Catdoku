@@ -1,5 +1,5 @@
 // Cache-first app shell. Bump CACHE_NAME on every deploy — this is the update strategy.
-const CACHE_NAME = "catdoku-v4";
+const CACHE_NAME = "catdoku-v7";
 const ASSETS = [
   ".",
   "index.html",
@@ -19,6 +19,10 @@ const ASSETS = [
   "icons/icon-192.png",
   "icons/icon-512.png",
   "icons/cat-mark.png",
+  // Precached so the result card appears instantly on the first win/loss
+  // rather than popping in late — they're ~170KB/117KB after quantizing.
+  "icons/you_win.png",
+  "icons/you_lose.png",
 ];
 
 self.addEventListener("install", (e) => {

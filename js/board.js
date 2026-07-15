@@ -67,10 +67,18 @@ function createMarkState(N) {
   return new Array(N * N).fill(MARK.EMPTY);
 }
 
-function cycleMark(mark) {
-  if (mark === MARK.EMPTY) return MARK.X;
-  if (mark === MARK.X) return MARK.CAT;
-  return MARK.EMPTY;
+// What a plain tap/drag does to a cell. Cats are deliberately NOT reachable
+// here — they need a double-tap (see game.placeCat), because a cat placed in
+// the wrong cell now costs a life, and the old EMPTY->X->CAT->EMPTY cycle
+// meant erasing an X passed *through* CAT and would have burned that life
+// for nothing. Tapping only ever toggles X (or lifts a cat back off).
+// Returns { from, to }, or null for "do nothing" — the drag code relies on
+// `from` to decide which cells a stroke is allowed to touch.
+function actionFor(mark) {
+  if (mark === MARK.EMPTY) return { from: MARK.EMPTY, to: MARK.X };
+  if (mark === MARK.X) return { from: MARK.X, to: MARK.EMPTY };
+  if (mark === MARK.CAT) return { from: MARK.CAT, to: MARK.EMPTY };
+  return null;
 }
 
 function isDiagonallyAdjacent(r1, c1, r2, c2) {
@@ -113,7 +121,7 @@ if (typeof module !== "undefined" && module.exports) {
     validateRegions,
     isConnected,
     createMarkState,
-    cycleMark,
+    actionFor,
     isDiagonallyAdjacent,
     isValidSolution,
   };
@@ -125,7 +133,7 @@ if (typeof module !== "undefined" && module.exports) {
     validateRegions,
     isConnected,
     createMarkState,
-    cycleMark,
+    actionFor,
     isDiagonallyAdjacent,
     isValidSolution,
   };
