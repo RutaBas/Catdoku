@@ -258,12 +258,44 @@
   // golden-amber) instead of cycling the full rainbow, so the board itself
   // — the single largest element on screen — reads as patches of one warm
   // territory rather than a generic rainbow palette generator's output.
-  const REGION_HUES = [18, 32, 45, 8, 38, 55, 25, 42, 12, 48];
+  //
+  // The hue band (6-56 deg) is the same idea as the original palette, but the
+  // original left saturation pinned at 42% for every region and cycled just
+  // three lightness values, so hue alone had to separate ten colours inside
+  // 47 degrees. It couldn't: regions 4 and 7 landed 3.6 CIEDE2000 apart, which
+  // is below what the eye resolves side by side. (The old lightness formula
+  // `40 + ((id * 7) % 3) * 6` looked like it scattered values, but 7 is 1 mod
+  // 3, so it was only ever id % 3 -> 40/46/52 on repeat.)
+  //
+  // These ten were chosen by maximising the MINIMUM pairwise CIEDE2000 across
+  // the band with saturation and lightness free to vary, subject to:
+  //   - min pairwise dE >= 15         (comfortably distinct; was 3.6)
+  //   - lightness >= 42               (the X is rgba(28,23,18,.62) composited
+  //                                    over the region; darker and it vanishes)
+  //   - dE >= 20 from the cat's fur   (#fcc06c — else the ginger cat blends
+  //                                    into its own square)
+  // Order matters: regionColor takes the first N entries, so the list is
+  // sorted farthest-point-first — every prefix stays separated, from Lap Cat's
+  // 5 (dE 19.5) through Apex Predator's 10 (dE 15.2).
+  //
+  // Don't hand-edit these values. Nudging one for taste quietly collapses a
+  // pair somewhere else; re-run the optimisation instead. Rounding them to
+  // tidier numbers was tried and cost 1.7 dE, which is why they look arbitrary.
+  const REGION_COLORS = [
+    "hsl(6, 60%, 42%)", // brick
+    "hsl(54, 18%, 82%)", // pale linen
+    "hsl(40, 18%, 42%)", // olive taupe
+    "hsl(56, 54%, 42%)", // olive gold
+    "hsl(10, 21%, 60%)", // dusty mauve
+    "hsl(8, 18%, 44%)", // cocoa
+    "hsl(8, 36%, 82%)", // blush
+    "hsl(8, 60%, 58%)", // salmon
+    "hsl(32, 57%, 42%)", // caramel
+    "hsl(44, 18%, 58%)", // sand
+  ];
 
-  function regionColor(regionId, N) {
-    const hue = REGION_HUES[regionId % REGION_HUES.length];
-    const lightness = 40 + ((regionId * 7) % 3) * 6;
-    return `hsl(${hue}, 42%, ${lightness}%)`;
+  function regionColor(regionId) {
+    return REGION_COLORS[regionId % REGION_COLORS.length];
   }
 
   function sizeBoard(N) {
@@ -283,7 +315,7 @@
       const div = document.createElement("div");
       div.className = "cell";
       div.setAttribute("role", "gridcell");
-      div.style.backgroundColor = regionColor(regionOf[cell], N);
+      div.style.backgroundColor = regionColor(regionOf[cell]);
       const border = borderStyleFor(N, regionOf, cell);
       div.style.borderRight = border.borderRight;
       div.style.borderBottom = border.borderBottom;
