@@ -59,6 +59,11 @@
   let lastTap = null; // { cell, time, historyLen } — feeds double-tap detection
   const DOUBLE_TAP_MS = 280;
   const BOARD_BORDER_PX = 3; // must match #board's border-width in styles.css
+  // Deliberately WIDER than DOUBLE_TAP_MS — see the touchend handler in
+  // wireControls(). iOS decides "that was a double-tap, zoom" on its own
+  // ~350ms clock, so a pair of taps 300ms apart would miss our cat placement
+  // and still zoom. This window has to cover iOS's, not ours.
+  const ZOOM_SUPPRESS_MS = 400;
 
   function applyTheme(darkMode) {
     document.documentElement.setAttribute("data-theme", darkMode ? "dark" : "light");
@@ -741,6 +746,31 @@
     el.board.addEventListener("pointercancel", onPointerCancel);
     el.board.addEventListener("contextmenu", (e) => e.preventDefault());
     el.board.addEventListener("dragstart", (e) => e.preventDefault());
+
+    // Stop iOS zooming when you double-tap a cat into place.
+    //
+    // #board already sets `touch-action: none` and the page sets
+    // `touch-action: manipulation` — on paper either one should disable
+    // double-tap zoom. iOS honours neither for this gesture (it ignores
+    // `user-scalable=no` too), so cancelling the touch default on a quick
+    // second tap is the only thing that actually works.
+    //
+    // Timing alone decides it, not which cell was hit: iOS zooms on two taps
+    // that land anywhere near each other, so a slightly-off double-tap that
+    // misses our same-cell check would otherwise zoom for nothing.
+    //
+    // Scoped to #board, and touchend rather than touchstart, so this only
+    // suppresses the zoom — normal taps, swipes, and pinch-zoom outside the
+    // board all still behave.
+    let lastTouchEndAt = -Infinity;
+    el.board.addEventListener(
+      "touchend",
+      (e) => {
+        if (e.timeStamp - lastTouchEndAt <= ZOOM_SUPPRESS_MS) e.preventDefault();
+        lastTouchEndAt = e.timeStamp;
+      },
+      { passive: false } // preventDefault is ignored on a passive listener
+    );
 
     window.addEventListener("resize", () => {
       if (gameState) sizeBoard(gameState.N);
