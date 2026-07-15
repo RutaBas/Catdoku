@@ -217,9 +217,16 @@
     };
   }
 
+  // Region colors stay inside a warm "territory" hue range (brick to
+  // golden-amber) instead of cycling the full rainbow, so the board itself
+  // — the single largest element on screen — reads as patches of one warm
+  // territory rather than a generic rainbow palette generator's output.
+  const REGION_HUES = [18, 32, 45, 8, 38, 55, 25, 42, 12, 48];
+
   function regionColor(regionId, N) {
-    const hue = Math.round((regionId * 360) / N);
-    return `hsl(${hue}, 62%, 58%)`;
+    const hue = REGION_HUES[regionId % REGION_HUES.length];
+    const lightness = 40 + ((regionId * 7) % 3) * 6;
+    return `hsl(${hue}, 42%, ${lightness}%)`;
   }
 
   function sizeBoard(N) {

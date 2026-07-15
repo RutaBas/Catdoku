@@ -1,23 +1,30 @@
 :root {
-  --bg: #111111;
-  --panel: #1c1c1c;
-  --text: #f2f2f2;
-  --text-muted: #a0a0a0;
-  --accent: #ff9f43;
-  --cell-border-strong: #0a0a0a;
-  --cell-border-soft: rgba(255, 255, 255, 0.18);
-  --win-bg: #1c3a1c;
+  /* Concept anchor: a cat quietly claiming its territory, one tile at a
+     time — deliberate, warm, a little smug about it. Palette is derived
+     from the ginger-tabby cat-mark icon rather than a generic dark theme. */
+  --bg: #1c1712;
+  --panel: #292019;
+  --text: #f3e6d6;
+  --text-muted: #b8a894;
+  --accent: #e08a3e;
+  --accent-strong: #c1652a;
+  --cell-border-strong: #0a0806;
+  --cell-border-soft: rgba(243, 230, 214, 0.14);
+  --win-bg: #3a2a16;
+  --shadow-color: rgba(10, 6, 3, 0.4);
 }
 
 :root[data-theme="light"] {
-  --bg: #f7f7f7;
-  --panel: #ffffff;
-  --text: #111111;
-  --text-muted: #5a5a5a;
-  --accent: #ff9f43;
-  --cell-border-strong: #ffffff;
-  --cell-border-soft: rgba(0, 0, 0, 0.15);
-  --win-bg: #dff5df;
+  --bg: #fbf3e7;
+  --panel: #fffbf3;
+  --text: #2a1f16;
+  --text-muted: #7a6a58;
+  --accent: #e08a3e;
+  --accent-strong: #c1652a;
+  --cell-border-strong: #fffbf3;
+  --cell-border-soft: rgba(42, 31, 22, 0.14);
+  --win-bg: #f5e6c8;
+  --shadow-color: rgba(122, 92, 58, 0.2);
 }
 
 * {
@@ -34,7 +41,7 @@ html, body {
   height: 100dvh;
   background: var(--bg);
   color: var(--text);
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  font-family: "Nunito", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
 }
 
 body {
@@ -55,6 +62,8 @@ h1 {
   margin: 0;
   text-align: center;
   font-size: 2rem;
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 700;
 }
 
 #start-header {
@@ -80,21 +89,25 @@ h1 {
   min-width: 44px;
   padding: 0.6em 1em;
   border: none;
-  border-radius: 10px;
+  border-radius: 14px;
   background: var(--panel);
   color: var(--text);
   font-size: 1rem;
   cursor: pointer;
+  box-shadow: 0 3px 8px var(--shadow-color);
+  transition: transform 0.18s cubic-bezier(0.33, 0.1, 0.25, 1), box-shadow 0.18s ease;
 }
 
 .btn:active {
   transform: scale(0.97);
+  box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .btn-primary {
   background: var(--accent);
   color: #1a1200;
-  font-weight: 600;
+  font-weight: 700;
+  font-family: "Baloo 2", "Nunito", sans-serif;
 }
 
 .icon-btn {
@@ -105,6 +118,11 @@ h1 {
   color: var(--text);
   font-size: 1.4rem;
   cursor: pointer;
+  transition: transform 0.18s cubic-bezier(0.33, 0.1, 0.25, 1);
+}
+
+.icon-btn:active {
+  transform: scale(0.9);
 }
 
 /* --- Start screen --- */
@@ -140,9 +158,11 @@ h1 {
 .diff-btn {
   min-height: 56px;
   border: none;
-  border-radius: 12px;
+  border-radius: 16px;
   background: var(--panel);
   color: var(--text);
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-weight: 600;
   font-size: 1.05rem;
   text-align: left;
   padding: 0 1.1rem;
@@ -150,10 +170,13 @@ h1 {
   align-items: center;
   justify-content: space-between;
   cursor: pointer;
+  box-shadow: 0 3px 8px var(--shadow-color);
+  transition: transform 0.18s cubic-bezier(0.33, 0.1, 0.25, 1), box-shadow 0.18s ease;
 }
 
 .diff-btn:active {
   transform: scale(0.98);
+  box-shadow: 0 1px 3px var(--shadow-color);
 }
 
 .diff-btn .diff-grid-size {
@@ -234,9 +257,10 @@ h1 {
 #board {
   display: grid;
   border: 3px solid var(--cell-border-strong);
-  border-radius: 4px;
+  border-radius: 10px;
   overflow: hidden;
   touch-action: manipulation;
+  box-shadow: 0 6px 20px var(--shadow-color);
 }
 
 .cell {
@@ -255,12 +279,25 @@ h1 {
   height: 78%;
   object-fit: contain;
   pointer-events: none;
+  animation: mark-in 0.16s cubic-bezier(0.33, 0.1, 0.25, 1);
 }
 
 .cell .mark-x {
   font-size: 0.9em;
   font-weight: 700;
-  color: rgba(0, 0, 0, 0.55);
+  color: rgba(28, 23, 18, 0.6);
+  animation: mark-in 0.16s cubic-bezier(0.33, 0.1, 0.25, 1);
+}
+
+@keyframes mark-in {
+  from {
+    transform: scale(0.7);
+    opacity: 0.4;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
 }
 
 #hint-message {
@@ -288,10 +325,16 @@ h1 {
 #win-banner {
   text-align: center;
   background: var(--win-bg);
-  border-radius: 12px;
+  border-radius: 16px;
   margin: 0.5rem 0.75rem;
   padding: 0.75rem;
+  box-shadow: 0 6px 20px var(--shadow-color);
   animation: win-pop 0.4s ease-out;
+}
+
+#win-banner p:first-child {
+  font-family: "Baloo 2", "Nunito", sans-serif;
+  font-size: 1.1rem;
 }
 
 @keyframes win-pop {
@@ -381,11 +424,13 @@ h1 {
   padding: 1.25rem 1.25rem 1.5rem;
   width: 320px;
   max-width: 100%;
+  box-shadow: 0 8px 28px var(--shadow-color);
 }
 
 .panel h2 {
   margin: 0 0 0.5rem;
   font-size: 1.15rem;
+  font-family: "Baloo 2", "Nunito", sans-serif;
 }
 
 .setting-row {
