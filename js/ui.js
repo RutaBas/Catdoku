@@ -609,8 +609,9 @@
     el.resultVideo.hidden = false;
     el.resultVideo.setAttribute("aria-label", alt);
 
-    // Rewinding matters on the second win of a session: the element is reused,
-    // and a video parked on its last frame will not replay on its own.
+    // Rewinding matters on the second win of a session: the element is reused
+    // and hideResult() only pauses it, so without this it would pick up wherever
+    // the last win left off.
     try {
       el.resultVideo.currentTime = 0;
     } catch (_) {
@@ -708,10 +709,11 @@
     const mistakeNote = flawless ? "" : ` · ${gameState.mistakes} mistake${gameState.mistakes === 1 ? "" : "s"}`;
 
     showResult({
-      // The clip plays once and settles on its closing frame rather than
-      // looping — a cat cheering on a 10s loop stops reading as a reward and
-      // starts reading as a screensaver. `image` is the fallback, not a second
-      // card: it only ever appears if the video can't play.
+      // Loops (the `loop` attribute is on the element) until the overlay closes,
+      // which is what hideResult's pause() is for. The file is cut and
+      // cross-faded to wrap cleanly — see media/README.md before re-cutting it.
+      // `image` is the fallback, not a second card: it only ever appears if the
+      // video can't play.
       video: "media/you_win.mp4",
       image: "icons/you_win.png",
       alt: "You win",
