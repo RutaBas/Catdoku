@@ -62,6 +62,14 @@
   <div id="result-overlay" class="overlay" hidden>
     <div id="confetti-layer" aria-hidden="true"></div>
     <div id="result-panel" role="dialog" aria-modal="true" aria-labelledby="result-message">
+      <!-- Two pieces of card art, only ever one visible: the win video and the
+           still. The still covers losses, and also stands in for the video if
+           autoplay is refused or the file won't decode — see showResultMedia().
+           `muted` is not a preference here, it's the price of autoplay: every
+           mobile browser blocks sound-on autoplay outright. The win jingle is
+           playWinSound()'s job, so the track is stripped from the file. -->
+      <video id="result-video" src="media/you_win.mp4" poster="media/you_win_poster.jpg"
+             muted playsinline preload="auto" disablepictureinpicture hidden></video>
       <img id="result-img" src="" alt="">
       <p id="result-message"></p>
       <p id="result-stats"></p>

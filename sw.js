@@ -1,5 +1,5 @@
 // Cache-first app shell. Bump CACHE_NAME on every deploy — this is the update strategy.
-const CACHE_NAME = "catdoku-v10";
+const CACHE_NAME = "catdoku-v11";
 const ASSETS = [
   ".",
   "index.html",
@@ -23,6 +23,13 @@ const ASSETS = [
   // rather than popping in late — they're ~170KB/117KB after quantizing.
   "icons/you_win.png",
   "icons/you_lose.png",
+  // The win animation, ~965KB — by far the heaviest thing here, and the only
+  // asset that isn't needed to start playing. It's precached anyway because the
+  // alternative is worse: fetch it on the win itself and a slow connection
+  // shows the poster, then cuts to a mid-flight video once it arrives. Install
+  // is a background task minutes before anyone can win; the stutter isn't.
+  "media/you_win.mp4",
+  "media/you_win_poster.jpg",
 ];
 
 self.addEventListener("install", (e) => {

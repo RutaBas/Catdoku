@@ -25,6 +25,7 @@
     resultOverlay: document.getElementById("result-overlay"),
     resultPanel: document.getElementById("result-panel"),
     resultImg: document.getElementById("result-img"),
+    resultVideo: document.getElementById("result-video"),
     resultMessage: document.getElementById("result-message"),
     resultStats: document.getElementById("result-stats"),
     resultSecondaryBtn: document.getElementById("result-secondary-btn"),
@@ -595,13 +596,55 @@
     persistCurrentGame();
   }
 
+  // Swaps the card art between the animated win video and a still. Callers pass
+  // `video` to ask for the clip; `image` is both the loss art and the win's
+  // safety net. Nothing here is allowed to leave the overlay blank — an ending
+  // with no card is worse than an ending with a still one, so every failure
+  // path lands on showResultStill().
+  function showResultMedia({ image, video, alt }) {
+    if (!video) return showResultStill(image, alt);
+
+    el.resultImg.hidden = true;
+    el.resultImg.removeAttribute("src");
+    el.resultVideo.hidden = false;
+    el.resultVideo.setAttribute("aria-label", alt);
+
+    // Rewinding matters on the second win of a session: the element is reused,
+    // and a video parked on its last frame will not replay on its own.
+    try {
+      el.resultVideo.currentTime = 0;
+    } catch (_) {
+      /* not seekable yet — it'll start from 0 anyway on first play */
+    }
+
+    // Belt and braces: the `muted` attribute in the HTML should be enough, but
+    // some iOS Safari builds only honour the property when it's set from script
+    // before play(), and a video that isn't muted to their satisfaction gets its
+    // autoplay refused.
+    el.resultVideo.muted = true;
+
+    const played = el.resultVideo.play();
+    // Older browsers return undefined rather than a promise. Autoplay refusal
+    // rejects here rather than throwing, which is the likeliest failure by far.
+    if (played && typeof played.catch === "function") {
+      played.catch(() => showResultStill(image, alt));
+    }
+  }
+
+  function showResultStill(image, alt) {
+    el.resultVideo.hidden = true;
+    el.resultVideo.pause();
+    el.resultImg.hidden = false;
+    el.resultImg.src = image;
+    el.resultImg.alt = alt;
+  }
+
   // One overlay serves both endings — the card art carries the "YOU WIN!" /
   // "MAYBE NEXT TIME..." message, so everything else here is just the stats
   // and the two ways out. Buttons are generic and get their label + handler
   // per result rather than keeping two near-identical banners in the DOM.
-  function showResult({ image, alt, message, stats, secondary, primary }) {
-    el.resultImg.src = image;
-    el.resultImg.alt = alt;
+  function showResult({ image, video, alt, message, stats, secondary, primary }) {
+    showResultMedia({ image, video, alt });
     el.resultMessage.textContent = message;
     el.resultStats.textContent = stats;
 
@@ -617,6 +660,9 @@
   function hideResult() {
     el.resultOverlay.hidden = true;
     el.confettiLayer.innerHTML = "";
+    // Leaving it playing behind a hidden overlay burns battery and, on some
+    // Android builds, keeps the media session alive in the notification tray.
+    el.resultVideo.pause();
   }
 
   // Ending a run drops you back at the difficulty list rather than silently
@@ -662,6 +708,11 @@
     const mistakeNote = flawless ? "" : ` · ${gameState.mistakes} mistake${gameState.mistakes === 1 ? "" : "s"}`;
 
     showResult({
+      // The clip plays once and settles on its closing frame rather than
+      // looping — a cat cheering on a 10s loop stops reading as a reward and
+      // starts reading as a screensaver. `image` is the fallback, not a second
+      // card: it only ever appears if the video can't play.
+      video: "media/you_win.mp4",
       image: "icons/you_win.png",
       alt: "You win",
       message: flawless

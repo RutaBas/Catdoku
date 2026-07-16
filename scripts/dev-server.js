@@ -13,6 +13,12 @@ const MIME = {
   ".css": "text/css",
   ".json": "application/json",
   ".png": "image/png",
+  // The win card's video and its poster. Without a real video/mp4 type the
+  // fallthrough serves application/octet-stream, which Safari refuses to play —
+  // and the result card would silently drop to the still, making a working
+  // animation look broken on the one browser this game is mostly played in.
+  ".mp4": "video/mp4",
+  ".jpg": "image/jpeg",
 };
 
 http

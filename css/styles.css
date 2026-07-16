@@ -319,11 +319,35 @@ h1 {
   animation: result-pop 0.42s cubic-bezier(0.2, 1.25, 0.4, 1) both;
 }
 
-#result-img {
+#result-img,
+#result-video {
   max-width: 100%;
   max-height: 52vh;
   object-fit: contain;
   filter: drop-shadow(0 12px 28px rgba(0, 0, 0, 0.5));
+}
+
+/* The win card is a rounded rectangle floating on the scrim. you_win.png gets
+   that for free — it has real transparency. MP4 has no alpha channel, so the
+   tool that animated it baked the transparency in as a literal grey-and-white
+   checkerboard. The file is cropped to the card's edges (media/README.md has the
+   ffmpeg recipe), but the corners still carry a sliver of it outside the arc.
+   This radius clips it, and the scrim shows through exactly as it does for the
+   PNG.
+
+   36px was picked by rendering the real frames against this overlay's scrim and
+   comparing: at 20px a white wedge still peeked out of each corner, and at 52px
+   the clip started eating the card's dark outline. 36px lands between — the
+   outline keeps its full curve and no checkerboard survives.
+
+   Why two values: a single percentage resolves against width horizontally and
+   height vertically, which on a 540x946 element would bend the corners into
+   ellipses. 6.67% of 540 and 3.8% of 946 both land on ~36px, so the corner
+   stays circular — and being percentages, the radius tracks the artwork's arc
+   at whatever size max-height ends up dictating. */
+#result-video {
+  border-radius: 6.67% / 3.8%;
+  background: transparent;
 }
 
 #result-message {
